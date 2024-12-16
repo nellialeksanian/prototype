@@ -1,0 +1,14 @@
+python-telegram-bot
+huggingface-hub
+langchain
+langchain-community   
+langchain-gigachat 
+langchain-core
+sentence-transformers 
+faiss-cpu
+datasets
+numpy
+scikit-learn
+python-dotenv
+pandas
+torch

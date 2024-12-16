@@ -12,6 +12,7 @@ from generation.generation_route import generate_route
 from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_answer import generate_answer
 from dotenv import load_dotenv
+from validation.validation_QA import evaluate_hallucinations
 
 load_dotenv()
 
@@ -42,9 +43,10 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user_question = update.message.text
         last_shown_artwork_index = context.user_data['last_shown_artwork_index']
-
+        answer = generate_answer(user_question, context.user_data['artworks'][last_shown_artwork_index])
+        validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index], answer, user_question)
         await update.message.reply_text(generate_answer(user_question, context.user_data['artworks'][last_shown_artwork_index]))
-
+        print(f'validation result:{ validation_res}')
 
 async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
