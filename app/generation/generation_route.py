@@ -10,7 +10,9 @@ load_dotenv()
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 
 giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', scope="GIGACHAT_API_CORP", verify_ssl_certs=False)
+                model='GigaChat', 
+                scope="GIGACHAT_API_CORP",
+                verify_ssl_certs=False)
 
 SYS_PROMPT_RUS = """Ты опытный музейный гид, специализирующийся на создании индивидуальных маршрутов по художественным выставкам.
 Тебе будет предоставлена подборка произведений искусства с описанием и запрос пользователя. Твоя задача - разработать логичный и увлекательный маршрут для посетителей, выделив ключевые экспонаты и их значимость.

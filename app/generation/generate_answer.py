@@ -8,13 +8,16 @@ load_dotenv()
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 
 template_info = """Ты опытный музейный гид, специализирующийся на создании индивидуальных маршрутов по художественным выставкам.
-Тебе будет предоставлено описание картины. Отвечай на вопросы пользователя исходя из данного описания
+Тебе будет предоставлено описание картины. Отвечай на вопросы пользователя исходя из данного описания. Если вопрос требует дополнительной информации для ответа, которой нет в контексте, отвечай что у тб недостаточно информуции для ответа на вопрос.
 Вопрос от пользователя: {user_question}
 Описание картины: {artwork}
 """
 
 giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', scope="GIGACHAT_API_CORP", verify_ssl_certs=False)
+                model='GigaChat', 
+                scope="GIGACHAT_API_CORP",
+                verify_ssl_certs=False)
+
 
 prompt_info = PromptTemplate.from_template(template_info)
 

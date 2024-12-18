@@ -12,7 +12,9 @@ template_info = """Ты опытный музейный гид, специали
 информация о картине: {artwork}"""
 
 giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', scope="GIGACHAT_API_CORP", verify_ssl_certs=False)
+                model='GigaChat', 
+                scope="GIGACHAT_API_CORP",
+                verify_ssl_certs=False)
 
 prompt_info = PromptTemplate.from_template(template_info)
 
