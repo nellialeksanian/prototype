@@ -1,28 +1,34 @@
 import os
-from langchain_gigachat.chat_models import GigaChat
+import httpx
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 
 load_dotenv()
 
-gigachat_token = os.getenv("GIGACHAT_TOKEN")
-
 template_info = """Ты опытный музейный гид, специализирующийся на создании индивидуальных маршрутов по художественным выставкам.
 Тебе будет предоставлено описание картины. Дай пользователю краткую информацию о картине
 информация о картине: {artwork}"""
 
-giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', scope="GIGACHAT_API_CORP", verify_ssl_certs=False)
-
+api_url = os.getenv("GENERATIVE_ENDPOINT_URL")
+model = "qwen"
 prompt_info = PromptTemplate.from_template(template_info)
-
-llm_chain = prompt_info | giga
-
 def generate_artwork_info(artwork):
-    response =  llm_chain.invoke({"artwork": artwork})
-    # Access the content attribute if it exists
-    if hasattr(response, 'content'):
-        return response.content
-    else:
-        # Fallback: Convert to string if the expected attribute is not present
-        return str(response)
+    try:
+        response = httpx.post(
+            url = api_url,
+            json={
+                "model": "qwen",
+                "messages": [{"role": "system", "content": template_info.format(artwork=artwork)}]
+            }, 
+            timeout=None)
+
+        response.raise_for_status()
+        generated_text = response.get("choices", [{}])[0].get("message", {}).get("content", "Ошибка генерации текста.")
+        return generated_text
+    
+    except httpx.RequestError as e:
+        return f"Request Error: {e}"
+    except httpx.HTTPStatusError as e:
+        return f"HTTP Error: {e}"
+    except Exception as e:
+        return f"Unexpected Error: {e}"
