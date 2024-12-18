@@ -60,5 +60,13 @@ def generate_route(prompt, k):
         "sys_prompt": SYS_PROMPT_RUS,
         "user_content": formatted_prompt
     })
+    artworks = [
+        {
+            "text": retrieved_documents['text'][i],
+            "image": retrieved_documents['image'][i]
+        }
+        for i in range(k)
+    ]
+    # print(artworks)
 
-    return response, retrieved_documents["text"] 
+    return response, artworks

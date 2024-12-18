@@ -1,7 +1,6 @@
 import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 from dotenv import load_dotenv
 
 load_dotenv()

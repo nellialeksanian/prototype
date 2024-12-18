@@ -1,7 +1,6 @@
 import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,6 +17,7 @@ giga = GigaChat(credentials=gigachat_token,
                 model='GigaChat', 
                 scope="GIGACHAT_API_CORP",
                 verify_ssl_certs=False)
+
 
 prompt_info = PromptTemplate.from_template(template_info)
 

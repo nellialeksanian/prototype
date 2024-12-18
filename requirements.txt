@@ -11,4 +11,9 @@ numpy
 scikit-learn
 python-dotenv
 pandas
+httpx
 torch
+transformers
+# selenium
+# chromedriver_autoinstaller
+# webdriver_manager
