@@ -78,7 +78,7 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_question = update.message.text
         last_shown_artwork_index = context.user_data['last_shown_artwork_index']
         answer = generate_answer(user_question, context.user_data['artworks'][last_shown_artwork_index])
-        validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index], answer, user_question)
+        validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index].get("text"), answer, user_question)
         await update.message.reply_text(generate_answer(user_question, context.user_data['artworks'][last_shown_artwork_index]))
         print(f'validation result:{ validation_res}')
 
