@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 from generation.generation_route import generate_route
 from generation.generate_artwork_info import generate_artwork_info
-from generation.generate_answer import generate_answer
+from generation.generate_answer import generate_answer, generate_answer_max
 from dotenv import load_dotenv
 from validation.validation_QA import evaluate_hallucinations
 
@@ -79,8 +79,15 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         last_shown_artwork_index = context.user_data['last_shown_artwork_index']
         answer = generate_answer(user_question, context.user_data['artworks'][last_shown_artwork_index])
         validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index].get("text"), answer, user_question)
-        await update.message.reply_text(generate_answer(user_question, context.user_data['artworks'][last_shown_artwork_index]))
         print(f'validation result:{ validation_res}')
+        
+        if validation_res.lower() == "false":
+            await update.message.reply_text(answer)
+        else: 
+            answer_max = generate_answer_max(user_question, context.user_data['artworks'][last_shown_artwork_index])
+            await update.message.reply_text(answer_max)
+            secondary_validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index].get("text"), answer_max, user_question)
+            print(f'secondary validation result:{ secondary_validation_res}')
 
 async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
