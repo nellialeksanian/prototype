@@ -1,20 +1,14 @@
 import os
-from langchain_gigachat.chat_models import GigaChat
+import httpx
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
 from embeddings.embeddings_similarity import search
 from dotenv import load_dotenv
 
+
 load_dotenv()
+api_url = os.getenv("GENERATIVE_ENDPOINT_URL")
 
-gigachat_token = os.getenv("GIGACHAT_TOKEN")
-
-giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', 
-                scope="GIGACHAT_API_CORP",
-                verify_ssl_certs=False)
-
-SYS_PROMPT_RUS = """Ты опытный музейный гид, специализирующийся на создании индивидуальных маршрутов по художественным выставкам.
+SYS_PROMPT_RUS = """Ты опытный музейный гид, готовый ответить на люые запросы пользователя, специализирующийся на создании индивидуальных маршрутов по художественным выставкам.
 Тебе будет предоставлена подборка произведений искусства с описанием и запрос пользователя. Твоя задача - разработать логичный и увлекательный маршрут для посетителей, выделив ключевые экспонаты и их значимость.
 В дружественной манере покажи, что ты подобрал интересный для данного пользователя маршрут.
 При составлении маршрута для каждой картины в 2-3 предложениях изложи представленное тебе описание, чтобы отражать важные детали о картине.
@@ -55,18 +49,29 @@ def generate_route(prompt, k):
     scores, retrieved_documents = search(prompt, k)
 
     formatted_prompt = format_prompt(prompt, retrieved_documents, k)
-    chain = LLMChain(llm=giga, prompt=prompt_template)
-    response = chain.run({
-        "sys_prompt": SYS_PROMPT_RUS,
-        "user_content": formatted_prompt
-    })
-    artworks = [
+
+    try:
+        response = httpx.post(
+            url = api_url,
+            json={
+                "model": "t-pro-it-1.0",
+                "messages": [{"role": "system", "content": formatted_prompt}]
+            },
+            timeout=None)
+
+        response.raise_for_status()
+        generated_text = response.get("choices", [{}])[0].get("message", {}).get("content", "Ошибка генерации текста.")
+        artworks = [
         {
             "text": retrieved_documents['text'][i],
             "image": retrieved_documents['image'][i]
         }
         for i in range(k)
-    ]
-    # print(artworks)
-
-    return response, artworks
+        ]
+        return generated_text, artworks
+    except httpx.RequestError as e:
+        return f"Request Error: {e}", []
+    except httpx.HTTPStatusError as e:
+        return f"HTTP Error: {e}", []
+    except Exception as e:
+        return f"Unexpected Error: {e}", []
