@@ -13,6 +13,7 @@ from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_answer import generate_answer, generate_answer_max
 from dotenv import load_dotenv
 from validation.validation_QA import evaluate_hallucinations
+from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
 
 from process_data.load_data import split_text
 
@@ -85,9 +86,12 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(answer)
         else: 
             answer_max = generate_answer_max(user_question, context.user_data['artworks'][last_shown_artwork_index])
-            await update.message.reply_text(answer_max)
             secondary_validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index].get("text"), answer_max, user_question)
-            print(f'secondary validation result:{ secondary_validation_res}')
+            if secondary_validation_res.lower() == "false":
+                await update.message.reply_text(answer_max)
+                print(f'secondary validation result:{ secondary_validation_res}')
+            else: 
+                await update.message.reply_text("К сожалению, я затрудняюсь ответить. Пожалуйста перефразируйте ваш вопрос.")
 
 async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -101,6 +105,11 @@ async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.answer()
         artwork_info = generate_artwork_info(artwork.get("text"))
+        
+        #validation 
+        validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
+        print(f'validation result:{validation_res}')
+
         max_message_length = 4096 
         artworks_parts = split_text(artwork_info, max_message_length)
             
