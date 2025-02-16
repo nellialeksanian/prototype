@@ -26,3 +26,16 @@ df.to_parquet('data/paintings_data_tables/full_data.parquet')
 #     lambda x: np.zeros(512) if (x is None or len(x) == 0 or np.isnan(x).any()) else x
 # )
 # data.to_parquet('app/data/images1.parquet')
+
+# curl http://localhost:1234/v1/chat/completions \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "model": "t-pro-it-1.0",
+#     "messages": [
+#       { "role": "system", "content": "Always answer in rhymes. Today is Thursday" },
+#       { "role": "user", "content": "What day is it today?" }
+#     ],
+#     "temperature": 0.7,
+#     "max_tokens": -1,
+#     "stream": false
+# }'

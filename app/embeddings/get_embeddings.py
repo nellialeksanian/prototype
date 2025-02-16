@@ -1,8 +1,10 @@
 from sentence_transformers import SentenceTransformer
 from datasets import Dataset
 import pandas as pd
+import torch
 
 # df = pd.read_csv('data/paintings_data_tables/dataset.csv')
+# df = pd.read_parquet('data/paintings_data_tables/Slovcova.parquet')
 # data = Dataset.from_pandas(df)
 
 model_emb = SentenceTransformer("BAAI/bge-m3")
@@ -20,4 +22,4 @@ def get_embeddings(text_list):
 #     lambda x:{"embeddings": get_embeddings(x["text"]).cpu().numpy()}
 # )
 
-# embeddings_dataset.to_parquet('data/paintings_data_tables/embeddings_dataset_bge.parquet') 
+# embeddings_dataset.to_parquet('data/paintings_data_tables/Slovcova_embeddings.parquet') 
