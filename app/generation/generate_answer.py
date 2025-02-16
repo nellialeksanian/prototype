@@ -7,11 +7,12 @@ load_dotenv()
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 
-template_info = """Ты опытный музейный гид, специализирующийся на создании индивидуальных маршрутов по художественным выставкам.
-Тебе будет предоставлено описание картины. Отвечай на вопросы пользователя исходя из данного описания. Если вопрос требует дополнительной информации для ответа, которой нет в контексте, отвечай что у тб недостаточно информуции для ответа на вопрос.
+template_info = """Я хочу, чтобы ты общался с пользователем, ориентируясь на его описание: {user_description}. Твоя задача — дать максимально точный и при этом увлекательный ответ на вопрос пользователя, основываясь на интересах пользователя, чтобы сделать ответ максимально увлекательным для него.
+Тебе будет предоставлено описание картины. Отвечай на вопросы пользователя, опираясь на это описание. Если вопрос требует дополнительной информации, которой нет в текущем контексте, сообщи, что у тебя недостаточно информации для того, чтобы дать точный ответ.
 Вопрос от пользователя: {user_question}
 Описание картины: {artwork}
 """
+
 
 giga = GigaChat(credentials=gigachat_token,
                 model='GigaChat', 
@@ -29,20 +30,24 @@ prompt_info = PromptTemplate.from_template(template_info)
 llm_chain = prompt_info | giga
 llm_chain_max = prompt_info | giga_max
 
-def generate_answer(user_question, artwork):
-    response =  llm_chain.invoke({"user_question": user_question, "artwork": artwork})
-    # Access the content attribute if it exists
+def generate_answer(user_question, artwork, user_description):
+    response =  llm_chain.invoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
+    response_text = response.content
+    response_text = str(response)
+    if len(response_text) < 350:
+        response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})
     if hasattr(response, 'content'):
         return response.content
     else:
-        # Fallback: Convert to string if the expected attribute is not present
         return str(response)
     
-def generate_answer_max(user_question, artwork):
-    response =  llm_chain_max.invoke({"user_question": user_question, "artwork": artwork})
-    # Access the content attribute if it exists
+def generate_answer_max(user_question, artwork, user_description):
+    response =  llm_chain_max.invoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
+    response_text = response.content
+    response_text = str(response)
+    if len(response_text) < 350:
+        response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})
     if hasattr(response, 'content'):
         return response.content
     else:
-        # Fallback: Convert to string if the expected attribute is not present
         return str(response)
