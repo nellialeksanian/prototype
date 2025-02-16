@@ -14,12 +14,14 @@ from generation.generation_route import generate_route
 from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_answer import generate_answer, generate_answer_max
 from generation.generate_goodbyu_word import generate_goodbyu_word
-# from validation.validation_QA import evaluate_hallucinations
 from process_data.load_data import  split_text
 from generation.generate_goodbyu_word import exhibition_description
+from validation.validation_QA import evaluate_hallucinations
+from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
 import random 
 import re
 load_dotenv()
+
 
 def create_keyboard(buttons):
     return InlineKeyboardMarkup([[InlineKeyboardButton(text, callback_data=data) for text, data in buttons]])
@@ -126,20 +128,25 @@ async def process_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_description = context.user_data.get('user_description', '')
     
     answer = generate_answer(user_question, artwork, user_description)
-    # validation_res = evaluate_hallucinations(artwork.get("text"), answer, user_question)
-    
-    # if validation_res.lower() == "false":
-    await update.message.reply_text(answer)
-    # else:
-    #     answer_max = generate_answer_max(user_question, artwork)
-    #     await update.message.reply_text(answer_max)
-    #     print(f'Secondary validation: {evaluate_hallucinations(artwork.get("text"), answer_max, user_question)}')
+    validation_res = evaluate_hallucinations(artwork.get("text"), answer, user_question)
+    print(f'validation result:{ validation_res}')
 
+    if validation_res.lower() == "false":
+        await update.message.reply_text(answer)
+    else: 
+        answer_max = generate_answer_max(user_question, context.user_data['artworks'][last_shown_artwork_index])
+        secondary_validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index].get("text"), answer_max, user_question)
+        if secondary_validation_res.lower() == "false":
+            await update.message.reply_text(answer_max)
+            print(f'secondary validation result:{ secondary_validation_res}')
+        else: 
+            await update.message.reply_text("К сожалению, я затрудняюсь ответить. Пожалуйста перефразируйте ваш вопрос.")
 
     current_artwork_index = context.user_data['current_artwork_index']
     if current_artwork_index < len(context.user_data['artworks']):
         keyboard = [[InlineKeyboardButton("Следующий экспонат", callback_data='next_artwork')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
+
         await update.message.reply_text("Вы можете задать ещё вопросы или перейти к следующему экспонату", reply_markup=reply_markup)
     else:
         keyboard = [[InlineKeyboardButton("Завершить маршрут", callback_data='end_tour')]]
@@ -156,7 +163,6 @@ async def end_tour(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     current_artwork_index = context.user_data['current_artwork_index']
-
     context.user_data['state'] = 'question_mode'
     context.user_data['last_shown_artwork_index'] = current_artwork_index
     artwork = context.user_data['artworks'][current_artwork_index]
@@ -164,6 +170,9 @@ async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     user_description = context.user_data.get('user_description', '')
     artwork_info = generate_artwork_info(artwork.get("text"), user_description)
+    #validation 
+    validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
+    print(f'validation result:{validation_res}')
     max_caption_length = 1024
 
     image_url = artwork.get("image")
