@@ -14,7 +14,7 @@ from generation.generation_route import generate_route
 from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_answer import generate_answer, generate_answer_max
 from generation.generate_goodbyu_word import generate_goodbyu_word
-from process_data.load_data import  split_text
+# from process_data.load_data import  split_text
 from generation.generate_goodbyu_word import exhibition_description
 from validation.validation_QA import evaluate_hallucinations
 from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
@@ -89,7 +89,7 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    context.user_data['send_images'] = query.data == "with_images"  # Запоминаем выбор формата изображений
+    context.user_data['send_images'] = query.data == "with_images" 
     await query.answer()
 
     keyboard = create_keyboard([
@@ -134,8 +134,8 @@ async def process_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if validation_res.lower() == "false":
         await update.message.reply_text(answer)
     else: 
-        answer_max = generate_answer_max(user_question, context.user_data['artworks'][last_shown_artwork_index])
-        secondary_validation_res = evaluate_hallucinations(context.user_data['artworks'][last_shown_artwork_index].get("text"), answer_max, user_question)
+        answer_max = generate_answer_max(user_question, artwork, user_description)
+        secondary_validation_res = evaluate_hallucinations(artwork.get("text"), answer_max, user_question)
         if secondary_validation_res.lower() == "false":
             await update.message.reply_text(answer_max)
             print(f'secondary validation result:{ secondary_validation_res}')

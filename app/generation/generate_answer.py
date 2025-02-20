@@ -33,7 +33,6 @@ llm_chain_max = prompt_info | giga_max
 def generate_answer(user_question, artwork, user_description):
     response =  llm_chain.invoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
     response_text = response.content
-    response_text = str(response)
     if len(response_text) < 350:
         response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})
     if hasattr(response, 'content'):
@@ -44,7 +43,6 @@ def generate_answer(user_question, artwork, user_description):
 def generate_answer_max(user_question, artwork, user_description):
     response =  llm_chain_max.invoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
     response_text = response.content
-    response_text = str(response)
     if len(response_text) < 350:
         response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})
     if hasattr(response, 'content'):

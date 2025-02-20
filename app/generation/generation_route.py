@@ -3,6 +3,8 @@ from langchain_gigachat.chat_models import GigaChat
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import LLMChain
 from embeddings.embeddings_similarity import search
+from process_data.load_data import clean_text
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,14 +16,14 @@ giga = GigaChat(credentials=gigachat_token,
                 scope="GIGACHAT_API_CORP",
                 verify_ssl_certs=False)
 
-SYS_PROMPT_RUS = SYS_PROMPT_RUS = """Ты — музейный гид, который создает индивидуальные маршруты для посетителей художественных выставок, основываясь на их интересах и предпочтениях.
+SYS_PROMPT_RUS = """Ты — музейный гид, который создает индивидуальные маршруты для посетителей художественных выставок, основываясь на их интересах и предпочтениях.
 
 Пользователь, для которого ты создаешь маршрут, имеет следующие особенности: {user_description}
 
 Твоя задача:
 1. Использовать стиль общения, который соответствует пользователю (например, "ты" или "Вы").
 2. Если пользователь — ребенок, добавляй фантазийность, избегай сложных терминов. Если искусствовед — говори с ним как со знатоком. Также адаптируйся и для других категорий пользователей.
-3. Маршрут может быть как списком картин, так и историей с легким переходом.
+3. Маршрут должен быть списком картин - каждая картина с новой строки.
 4. Каждая картина должна быть представлена так, чтобы пользователь чувствовал связь со своими интересами.
 5. Избегай сухих фактов — пиши как живой экскурсовод, ведущий интересный рассказ.
 
@@ -72,14 +74,13 @@ def generate_route(k, user_description, user_query):
         "user_description": user_description
     })
     response_text = response.content
-    print('Ответ1:',response_text)
-    response_text = str(response)
+    print('1 попытка генерации маршрута:', response_text)
     
-    if len(response_text) < 450:
+    if len(response_text) < 350:
         print("Модель отказалась генерировать ответ или не смогла ответить. Попробуем перегенерировать...")
         formatted_prompt_no_query = format_prompt(retrieved_documents, k, user_query=None)
         
-        print('Без запроса:', formatted_prompt_no_query)
+        # print('Без запроса:', formatted_prompt_no_query)
 
         response = chain.invoke({
             "sys_prompt": SYS_PROMPT_RUS,
@@ -89,12 +90,12 @@ def generate_route(k, user_description, user_query):
         })
 
     response_text_new = response.content
-    print('Ответ2:',response_text_new)
-    response_text_new = str(response)
-    if len(response_text_new) < 450:
+    print('2 попытка генерации маршрута:', response_text_new)
+
+    if len(response_text_new) < 350:
         user_content = f"Подборка произведений искусства:\n"
         for i in range(k):
-            user_content += f"{i + 1}. {retrieved_documents['text'][i]}\n"
+            user_content += f"{i + 1}. {clean_text(retrieved_documents['text'][i])}\n"
         response = user_content
 
     artworks = [

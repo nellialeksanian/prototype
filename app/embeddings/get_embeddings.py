@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer
-from datasets import Dataset
-import pandas as pd
-import torch
+# from datasets import Dataset
+# import pandas as pd
+# import torch
 
 # df = pd.read_csv('data/paintings_data_tables/dataset.csv')
 # df = pd.read_parquet('data/paintings_data_tables/Slovcova.parquet')
