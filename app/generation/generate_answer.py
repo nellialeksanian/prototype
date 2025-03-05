@@ -7,10 +7,27 @@ load_dotenv()
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 
-template_info = """Я хочу, чтобы ты общался с пользователем, ориентируясь на его описание: {user_description}. Твоя задача — дать максимально точный и при этом увлекательный ответ на вопрос пользователя, основываясь на интересах пользователя, чтобы сделать ответ максимально увлекательным для него.
-Тебе будет предоставлено описание картины. Отвечай на вопросы пользователя, опираясь на это описание. Если вопрос требует дополнительной информации, которой нет в текущем контексте, сообщи, что у тебя недостаточно информации для того, чтобы дать точный ответ.
-Вопрос от пользователя: {user_question}
-Описание картины: {artwork}
+template_info = """You must communicate with the user based on their USER DESCRIPTION.  
+Your task is to provide the most accurate and engaging response to the user's QUESTION, based on their interests to make the answer as captivating as possible.  
+Answer the QUESTION using the provided ARTWORK INFO.  
+   Instructions:
+        - Respond in Russian language
+        - If the QUESTION requires additional information that is not available in the current context, inform the user that you don't have enough data to provide a precise answer. 
+
+    QUESTION:
+    =====
+    {user_question}
+    =====
+
+    USER DESCRIPTION:
+    =====
+    {user_description}
+    =====
+
+    ARTWORK INFO:
+    =====
+    {artwork}
+    =====
 """
 
 

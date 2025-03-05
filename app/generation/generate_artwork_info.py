@@ -8,14 +8,29 @@ load_dotenv()
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 
-template_info = """Я хочу, чтобы ты общался с пользователем, учитывая его описание: {user_description}. Ты — музейный гид, создающий персонализированные описания экспонатов на основе интересов пользователя: {user_description}. Твоя цель — представить информацию о картинах увлекательно и понятно, подчеркивая детали, которые могут заинтересовать пользователя. Информация о картине должна быть логично встроена в маршрут экспонатов, где каждый новый объект — это продолжение пути.
+template_info = """You are a skilled museum guide specializing in personalized artwork descriptions. Make your explanations  appropriate for the user’s interests from their USER DESCRIPTION, making the information as captivating as possible.
 
-Предоставь краткое описание картины, избегая длинных вводных фраз, чтобы текст был легким для восприятия. Можно использовать списки, но каждый элемент с новой строки.
+    You will receive ARTWORK INFO. Provide a concise, engaging explanation, highlighting details that resonate most with this user.
 
-Информация о картине: {artwork}
+    Instructions:
+        - Respond in Russian language
+        - Response consist of 4-5 sentences.
+        - Split the text into readable paragraphs to make it easier to perceive.
+        - Each painting is part of a sequential tour, and you guide the user through the journey. Ensure the artwork information flows logically within the tour’s narrative.
+        - !!! IMPORTANT: Use NO greetings such as "Привет" or "Здравствуйте" or any similar phrases. Respond only with the main content. !!!
+
+    USER DESCRIPTION:
+    =====
+    {user_description}
+    =====
+
+    ARTWORK INFO:
+    =====
+    {artwork}
+    =====
+
+
 """
-
-
 
 giga = GigaChat(credentials=gigachat_token,
                 model='GigaChat', 
@@ -29,18 +44,18 @@ llm_chain = prompt_info | giga
 def generate_artwork_info(artwork, user_description):
     response =  llm_chain.invoke({ "artwork": artwork, "user_description": user_description})
     response_text = response.content
-    print('1 попытка создать описание:', response)
+    print(f'**Generation of the artwork_info with all parametrs: {response}')
 
-    if len(response_text) < 550:
-        print("Модель отказалась генерировать ответ. Попробуем перегенерировать...")
+    if len(response_text) < 450:
+        print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
         response =  llm_chain.invoke({ "artwork": artwork, "user_description": None})
-        print('2 попытка создать описание:', response)
+        print(f'**Generation of the artwork info without user_description: {response}')
 
     response_text_new = response.content
-    if len(response_text_new) < 550:
-        print("Модель отказалась генерировать ответ. Попробуем отправить описание...")
+    if len(response_text_new) < 450:
+        print("The BLACKLIST problem. Send the origina artwork info.")
         response =  clean_text(artwork)
-        print('3 попытка создать описание:', response)
+        print(f'**Responce is the original artwork info')
 
 
     if hasattr(response, 'content'):

@@ -13,20 +13,29 @@ def load_data():
 def split_text(text, max_length=4096):
     return [text[i:i+max_length] for i in range(0, len(text), max_length)]
 
+async def send_text_in_chunks(text, message_func, max_length=4096):
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    chunk = ""
+
+    for sentence in sentences:
+        if len(chunk) + len(sentence) + 1 > max_length:
+            await message_func(chunk.strip())
+            chunk = sentence
+        else:
+            chunk += " " + sentence 
+
+    if chunk:
+        await message_func(chunk.strip())
+
 def clean_text(text):
-    # Удаление всех ссылок, включая домены без префикса (например, example.com)
     text = re.sub(r'\b(?:https?://|www\.|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:/\S*)?\b', '', text)
     
-    # Удаление списка наград (на примере маркированного или нумерованного списка)
     text = re.sub(r'(?m)^(-|\d+\.)\s.*(?:\n(?!\S))?', '', text)
     
-    # Удаление конструкций типа [bookmark: ...]
     text = re.sub(r'\[bookmark: [^\]]+\]', '', text)
     
-    # Удаление годов выставок
     text = re.sub(r'(?m)^\d{4}(?:\sгод)?$', '', text)
     
-    # Удаление лишних пустых строк (более двух подряд заменяем на одну)
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
     
     return text
