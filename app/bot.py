@@ -16,9 +16,10 @@ from generation.generate_voice import converter_text_to_voice
 from generation.generate_answer import generate_answer, generate_answer_max
 from process_data.load_data import send_text_in_chunks
 from generation.generate_goodbye_word import exhibition_description, generate_goodbye_word
-# from validation.validation_QA import evaluate_hallucinations
-# from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
+from validation.validation_QA import evaluate_hallucinations
+from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
 import random 
+import re
 load_dotenv()
 
 
@@ -61,7 +62,9 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         route, artworks = generate_route(top_k, user_description, user_query)
         context.user_data['artworks'] = artworks
 
-        voice_route = await converter_text_to_voice(route)
+        clean_route = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)  
+        voice_route = await converter_text_to_voice(clean_route)
+        
         await send_text_in_chunks(route, lambda text: update.message.reply_text(text, parse_mode="Markdown"))
 
         await update.message.reply_voice(voice_route)
@@ -117,22 +120,24 @@ async def process_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_description = context.user_data.get('user_description', '')
     await update.message.reply_text("Обрабатываю ваш вопрос... Подождите немного! ⏳")
     answer = generate_answer(user_question, artwork, user_description)
-    # validation_res = evaluate_hallucinations(artwork.get("text"), answer, user_question)
-    # print(f'validation result:{ validation_res}')
+    validation_res = evaluate_hallucinations(artwork.get("text"), answer, user_question)
+    print(f'validation result:{ validation_res}')
 
-    # if validation_res.lower() == "false":
-    voice_answer = await converter_text_to_voice(answer)
-    await update.message.reply_text(answer, parse_mode="Markdown")
-    await update.message.reply_voice(voice_answer)
+    if validation_res.lower() == "false":
+        voice_answer = await converter_text_to_voice(answer)
+        await update.message.reply_text(answer, parse_mode="Markdown")
+        await update.message.reply_voice(voice_answer)
 
-    # else: 
-        # answer_max = generate_answer_max(user_question, artwork, user_description)
-        # secondary_validation_res = evaluate_hallucinations(artwork.get("text"), answer_max, user_question)
-        # if secondary_validation_res.lower() == "false":
-            # await update.message.reply_text(answer_max)
-            # print(f'secondary validation result:{ secondary_validation_res}')
-        # else: 
-            # await update.message.reply_text("К сожалению, я затрудняюсь ответить. Пожалуйста перефразируйте ваш вопрос.")
+    else: 
+        answer_max = generate_answer_max(user_question, artwork, user_description)
+        secondary_validation_res = evaluate_hallucinations(artwork.get("text"), answer_max, user_question)
+        if secondary_validation_res.lower() == "false":
+            await update.message.reply_text(answer_max)
+            voice_answer_max = await converter_text_to_voice(answer_max)
+            await update.message.reply_voice(voice_answer_max)    
+            print(f'secondary validation result:{ secondary_validation_res}')
+        else: 
+            await update.message.reply_text("К сожалению, я затрудняюсь ответить. Пожалуйста перефразируйте ваш вопрос.")
 
     current_artwork_index = context.user_data['current_artwork_index']
     if current_artwork_index < len(context.user_data['artworks']):
@@ -157,8 +162,8 @@ async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text("Обрабатываю ваш вопрос... Подождите немного! ⏳")
     artwork_info = generate_artwork_info(artwork.get("text"), user_description)
     #validation 
-    # validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
-    # print(f'validation result:{validation_res}')
+    validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
+    print(f'validation result:{validation_res}')
     voice_artwork = await converter_text_to_voice(artwork_info)
     max_caption_length = 1024
 

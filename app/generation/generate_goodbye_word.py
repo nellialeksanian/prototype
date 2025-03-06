@@ -16,7 +16,7 @@ template_info = """I want you to interact with the user based on their USER DESC
         - Respond in Russian language
         - !!! IMPORTANT: Use NO greetings such as "Привет" or "Здравствуйте" or any similar phrases. Respond only with the main content. !!!
         - The message should consist of 2-3 sentences, written in a style that matches the USER DESCRIPTION.  
-        - This exhibition link must always be sent: https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/
+        - This exhibition link MUST ALWAYS be sent: https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/
     
     USER DESCRIPTION:  
     =====  
@@ -46,7 +46,7 @@ prompt_info = PromptTemplate.from_template(template_info)
 llm_chain = prompt_info | giga
 
 def generate_goodbye_word(exhibition_description, user_description):
-    parsed_unpack = open(exhibition_description).read()
+    parsed_unpack = open(exhibition_description, encoding="utf-8").read()
     print(f'Annotation: {parsed_unpack}')
     response =  llm_chain.invoke({"info": parsed_unpack, "user_description": user_description})
     if hasattr(response, 'content'):

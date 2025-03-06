@@ -25,12 +25,13 @@ SYS_PROMPT = """You are a museum guide who creates personalized tours for visito
         - Respond in Russian language
         - Use a communication style that matches the user description (e.g., "you" or "formal you").
         - If the user description is for a child, add a sense of fantasy and avoid complex terms. If the user description is about art expert, speak to them as a connoisseur. Adapt to other user categories as well.
-        - The tour must be presented as a list of the artworks.
+        - The response must be presented as a list of artworks.
         - Each artwork should be presented in a way that connects with the user's interests.
         - Avoid dry facts – write like a lively guide telling an interesting story.
+        - Make sure that the text is clean, formated as a list with line breaks between each artwork.
 
 
-    Example of a created tour 1:
+    Example of a created response 1:
 
         Если вы хотите насладиться красотой природы и пейзажей, я подготовил для вас такой маршрут:
 
@@ -45,7 +46,7 @@ SYS_PROMPT = """You are a museum guide who creates personalized tours for visito
 
         4. Палех. Этюды для картины "Моя родина", Павел Коровин. Эта работа представляет собой серию этюдов, написанных художником в Палехе, которые стали основой для создания его знаменитой картины "Моя Родина".
 
-    Example of a created tour for a kid:
+    Example of a created response for a kid:
 
         Привет! Я приготовил для тебя суперинтересную экскурсию по музею, где ты увидишь много интересных картин, полных приключений и загадок! Давай посмотрим, что мы сегодня увидим:
 
@@ -74,35 +75,36 @@ def format_prompt( retrieved_documents, k, user_query=None):
     for i in range(k):
         user_content += f"{i + 1}. {retrieved_documents['text'][i]}\n"
     return user_content
+    
 
 def generate_route(k, user_description, user_query):
     scores, retrieved_documents = search(user_query, k)
 
     formatted_artworks = format_prompt(retrieved_documents, k)
-    
-    chain = LLMChain(llm=giga, prompt=prompt_template)
-    
-    response = chain.run({
+
+    chain = prompt_template | giga
+
+    response = chain.invoke({
         "sys_prompt": SYS_PROMPT,
         "formatted_artworks": formatted_artworks,
         "user_description": user_description
     })
-    print(f'***Generation with all parametrs: {response}')
-    
-    if len(response) < 350:
+    print(f'***Generation with all parametrs: {response.content}')
+
+    if len(response.content) < 350:
         print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
         formatted_prompt_no_query = format_prompt(retrieved_documents, k, user_query=None)
 
-        response = chain.run({
+        response = chain.invoke({
             "sys_prompt": SYS_PROMPT,
             "formatted_artworks": formatted_prompt_no_query,
             "user_description": user_description
 
         })
 
-        print(f'***Generation without query: {response}')
+        print(f'***Generation without query: {response.content}')
         
-    if len(response) < 350:
+    if len(response.content) < 350:
         print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
         user_content = f"The collection of artworks: \n"
         for i in range(k):

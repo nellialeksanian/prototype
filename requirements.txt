@@ -12,5 +12,5 @@ python-dotenv
 pandas
 torch
 transformers
-tika
+gTTS
 psycopg2-binary
