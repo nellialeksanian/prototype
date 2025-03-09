@@ -66,7 +66,7 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         voice_route = await converter_text_to_voice(clean_route)
         
         await send_text_in_chunks(route, lambda text: update.message.reply_text(text, parse_mode="Markdown"))
-
+        #await update.message.reply_text(clean_route, parse_mode="Markdown")
         await update.message.reply_voice(voice_route)
         
         with open("data/Slovcova/route.jpg", "rb") as photo: 
@@ -124,7 +124,8 @@ async def process_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f'validation result:{ validation_res}')
 
     if validation_res.lower() == "false":
-        voice_answer = await converter_text_to_voice(answer)
+        clean_answer = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer) 
+        voice_answer = await converter_text_to_voice(clean_answer)
         await update.message.reply_text(answer, parse_mode="Markdown")
         await update.message.reply_voice(voice_answer)
 
@@ -133,7 +134,8 @@ async def process_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         secondary_validation_res = evaluate_hallucinations(artwork.get("text"), answer_max, user_question)
         if secondary_validation_res.lower() == "false":
             await update.message.reply_text(answer_max)
-            voice_answer_max = await converter_text_to_voice(answer_max)
+            clean_answer_max = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer_max) 
+            voice_answer_max = await converter_text_to_voice(clean_answer_max)
             await update.message.reply_voice(voice_answer_max)    
             print(f'secondary validation result:{ secondary_validation_res}')
         else: 
@@ -164,7 +166,8 @@ async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     #validation 
     validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
     print(f'validation result:{validation_res}')
-    voice_artwork = await converter_text_to_voice(artwork_info)
+    clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info) 
+    voice_artwork = await converter_text_to_voice(clean_artwork_info)
     max_caption_length = 1024
 
     image_url = artwork.get("image")

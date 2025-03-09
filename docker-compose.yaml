@@ -4,13 +4,14 @@ services:
     container_name: postgres_db
     restart: always
     environment:
-      - POSTGRES_DB=postgres
+      - POSTGRES_DB=mydatabase
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=123
     ports:
       - "5433:5432"
     volumes:
       - /postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   bot:
     build:
