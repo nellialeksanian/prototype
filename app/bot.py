@@ -18,7 +18,6 @@ from process_data.load_data import send_text_in_chunks
 from generation.generate_goodbye_word import exhibition_description, generate_goodbye_word
 from validation.validation_QA import evaluate_hallucinations
 from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
-
 import random 
 import re
 load_dotenv()
@@ -32,7 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["Старт"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
     await update.message.reply_text(
-        "Привет! 👋 Я твой виртуальный гид по выставке 'Культурный слой'. Моя цель — провести тебя по музею и рассказать об экспонатах и истории, которые делают каждую выставку уникальной.\n"
+        "Привет! 👋 Я твой виртуальный гид по виртуальной выставке 'Моя Третьяковка'. Моя цель — провести тебя по музею и рассказать об экспонатах и истории, которые делают каждую выставку уникальной.\n"
         "\n"
         "Но сначала давай познакомимся! Расскажи немного о себе: сколько тебе лет, чем ты увлекаешься? "
         "Что тебя привело в музей — ты здесь ради вдохновения, учебы или просто решил(а) интересно провести время? "
@@ -86,8 +85,8 @@ async def handle_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     keyboard = create_keyboard([
-        ("🕒 Экспресс-тур", "short"),
-        ("⏳ Классическая экскурсия", "medium"),
+        ("🕒 Экспресс", "short"),
+        ("⏳ Стандарт", "medium"),
         ("🕰 Полное погружение", "long")
     ])
     

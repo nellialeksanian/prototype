@@ -95,6 +95,7 @@ def generate_route(k, user_description, user_query):
         "formatted_artworks": formatted_artworks,
         "user_description": user_description
     })
+    print(response)
     print(f'***Generation with all parametrs: {response.content}')
 
     if len(response.content) < 350:
@@ -107,7 +108,7 @@ def generate_route(k, user_description, user_query):
             "user_description": user_description
 
         })
-
+        print(response)
         print(f'***Generation without query: {response.content}')
         
     if len(response.content) < 350:
