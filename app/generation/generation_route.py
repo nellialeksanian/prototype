@@ -30,7 +30,6 @@ SYS_PROMPT = """You are a museum guide who creates personalized tours for visito
         - Each artwork should be presented in a way that connects with the user's interests.
         - Avoid dry facts – write like a lively guide telling an interesting story.
         - Make sure that the text is clean and structured as a list.
-        - AVOID using special caracherts such as # * or ---
 
     !!! IMPORTANT !!!
         - Each artwork must begin with a number (1., 2., 3.)
@@ -113,9 +112,9 @@ def generate_route(k, user_description, user_query):
         
     if len(response.content) < 350:
         print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
-        user_content = f"The collection of artworks: \n"
+        user_content = f"Список экспонатов:\n"
         for i in range(k):
-            user_content += f"{i + 1}. {clean_text(retrieved_documents['text'][i])}\n"
+            user_content += f"{i + 1}. {clean_text(retrieved_documents['text'][i])}\n\n"
         response = user_content
         print(f'***Responce is the list of artworks')
 

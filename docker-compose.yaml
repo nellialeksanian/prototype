@@ -4,9 +4,11 @@ services:
     container_name: postgres_db
     restart: always
     environment:
-      - POSTGRES_DB=mydatabase
-      - POSTGRES_USER=postgres
+      - POSTGRES_DB=ai_guide
       - POSTGRES_PASSWORD=123
+      - POSTGRES_NAME=postgres
+    env_file:
+      - .env
     ports:
       - "5433:5432"
     volumes:

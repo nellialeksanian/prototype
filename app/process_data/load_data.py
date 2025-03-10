@@ -14,18 +14,23 @@ def split_text(text, max_length=4096):
     return [text[i:i+max_length] for i in range(0, len(text), max_length)]
 
 async def send_text_in_chunks(text, message_func, max_length=4096):
-    sentences = re.split(r'(?<=[.!?])\s+', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    paragraphs = text.split('\n\n')
+
     chunk = ""
-
-    for sentence in sentences:
-        if len(chunk) + len(sentence) + 1 > max_length:
+    
+    for paragraph in paragraphs:
+        if len(chunk) + len(paragraph) + 2 > max_length:
             await message_func(chunk.strip())
-            chunk = sentence
+            chunk = paragraph
         else:
-            chunk += " " + sentence 
-
+            if chunk:
+                chunk += '\n\n' 
+            chunk += paragraph
+    
     if chunk:
         await message_func(chunk.strip())
+
 
 def clean_text(text):
     text = re.sub(r'\b(?:https?://|www\.|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:/\S*)?\b', '', text)
