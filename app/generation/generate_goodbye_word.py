@@ -16,7 +16,6 @@ template_info = """I want you to interact with the user based on their USER DESC
         - Respond in Russian language
         - !!! IMPORTANT: Use NO greetings such as "Привет" or "Здравствуйте" or any similar phrases. Respond only with the main content. !!!
         - The message should consist of 2-3 sentences, written in a style that matches the USER DESCRIPTION.  
-        - This exhibition link MUST ALWAYS be sent: https://my.tretyakov.ru/app/gallery 
     
     USER DESCRIPTION:  
     =====  
@@ -32,7 +31,6 @@ template_info = """I want you to interact with the user based on their USER DESC
 
         Благодарю вас за участие в экскурсии по выставке "Моя Третьяковка" в виртуальном музейном пространсве Третьяковская галерея! Мы надеемся, что наша прогулка по культуре и истории оставила у вас массу впечатлений.
         Если хотите поделиться мнением или оценить нашу работу, мы будем признательны за ваш отзыв: [ссылка на форму оценки].
-        Продолжить знакомство с миром искусства вы моежет на сайте: https://my.tretyakov.ru/app/gallery 
 
 """  
 

@@ -68,9 +68,6 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await send_text_in_chunks(clean_route, lambda text: update.message.reply_text(text, parse_mode="Markdown"))
         await update.message.reply_voice(voice_route)
-        
-        with open("data/Slovcova/route.jpg", "rb") as photo: 
-            await update.message.reply_photo(photo, caption="Карта маршрута")
 
         await update.message.reply_text(
             "Вы готовы начать экскурсию?", 
@@ -103,7 +100,7 @@ async def handle_tour_length(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
 
     tour_lengths = {
-        "short": random.randint(3, 7),
+        "short": random.randint(2, 5),
         "medium": random.randint(8, 12),
         "long": random.randint(13, 20)
     }
@@ -205,7 +202,8 @@ async def end_tour(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_description = context.user_data.get('user_description', '')
-    await query.message.reply_text(generate_goodbye_word(exhibition_description, user_description))
+    museum_info = f"\n\nПродолжить знакомство с миром искусства вы можете на сайте: https://my.tretyakov.ru/app/gallery"
+    await query.message.reply_text(generate_goodbye_word(exhibition_description, user_description) + museum_info)
 
 def main():
     app = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
