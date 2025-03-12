@@ -14,11 +14,10 @@ from generation.generation_route import generate_route
 from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_voice import converter_text_to_voice
 from generation.generate_answer import generate_answer, generate_answer_max
-from process_data.load_data import send_text_in_chunks
+from process_data.load_data import send_text_in_chunks, send_text_with_image
 from generation.generate_goodbye_word import exhibition_description, generate_goodbye_word
 from validation.validation_QA import evaluate_hallucinations
 from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
-
 import random 
 import re
 load_dotenv()
@@ -169,17 +168,17 @@ async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f'validation result:{validation_res}')
     clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info) 
     voice_artwork = await converter_text_to_voice(clean_artwork_info)
-    max_caption_length = 1024
 
     image_url = artwork.get("image")
     send_images = context.user_data.get('send_images', False)
 
     if send_images and image_url:
-        if len(artwork_info) <= max_caption_length:
-            await query.message.reply_photo(image_url, caption=artwork_info)
-        else:
-            await query.message.reply_photo(image_url, caption=artwork_info[:max_caption_length])
-            await send_text_in_chunks(artwork_info[max_caption_length:], lambda text: query.message.reply_text(text, parse_mode="Markdown"))
+        await send_text_with_image(
+            artwork_info, 
+            image_url, 
+            lambda text: query.message.reply_text(text, parse_mode="Markdown"), 
+            lambda url, caption: query.message.reply_photo(url, caption=caption)
+        )
     else:
         await send_text_in_chunks(artwork_info, lambda text: query.message.reply_text(text, parse_mode="Markdown"))
 
@@ -223,3 +222,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

@@ -30,6 +30,23 @@ async def send_text_in_chunks(text, message_func, max_length=4096):
     if chunk:
         await message_func(chunk.strip())
 
+async def send_text_with_image(text, image_url, message_func, photo_func, max_caption_length=1024):
+    
+    paragraphs = re.split(r'\n\s*\n', text.strip())
+    caption = ""
+    remaining_text = []
+    
+    for paragraph in paragraphs:
+        if len(caption) + len(paragraph) + 2 <= max_caption_length:
+            caption += "\n\n" + paragraph if caption else paragraph
+        else:
+            remaining_text.append(paragraph)
+
+    await photo_func(image_url, caption=caption)
+
+    if remaining_text:
+        await send_text_in_chunks("\n\n".join(remaining_text), message_func) 
+
 
 def clean_text(text):
     text = re.sub(r'\b(?:https?://|www\.|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:/\S*)?\b', '', text)
