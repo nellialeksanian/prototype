@@ -3,7 +3,7 @@ from datasets import Dataset
 import re
 
 def load_data():
-    df_loaded = pd.read_parquet('data/Slovcova/Slovcova_embeddings_2.parquet')
+    df_loaded = pd.read_parquet('data/Slovcova/Slovcova_embeddings_map.parquet')
     embeddings_dataset = Dataset.from_pandas(df_loaded)
     embeddings_dataset.add_faiss_index(column="embeddings")
 
@@ -52,10 +52,6 @@ def clean_text(text):
     text = re.sub(r'\b(?:https?://|www\.|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:/\S*)?\b', '', text)
     
     text = re.sub(r'(?m)^(-|\d+\.)\s.*(?:\n(?!\S))?', '', text)
-    
-    text = re.sub(r'\[bookmark: [^\]]+\]', '', text)
-    
-    text = re.sub(r'(?m)^\d{4}(?:\sгод)?$', '', text)
     
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
     
