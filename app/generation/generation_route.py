@@ -85,7 +85,7 @@ def format_prompt( retrieved_documents, k, user_query=None):
 
 def generate_route(k, user_description, user_query):
     scores, retrieved_documents = search(user_query, k)
-
+    
     formatted_artworks = format_prompt(retrieved_documents, k)
 
     chain = prompt_template | giga

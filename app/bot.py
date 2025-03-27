@@ -15,7 +15,7 @@ from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_voice import converter_text_to_voice
 from generation.generate_answer import generate_answer, generate_answer_max
 from process_data.load_data import send_text_in_chunks, send_text_with_image
-from generation.generate_goodbye_word import exhibition_description, generate_goodbye_word
+from generation.generate_goodbye_word import generate_goodbye_word
 from validation.validation_QA import evaluate_hallucinations
 from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
 import random 
@@ -31,7 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["Старт"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
     await update.message.reply_text(
-        "Привет! 👋 Я твой виртуальный гид по выставке 'Культурный слой'. Моя цель — провести тебя по музею и рассказать об экспонатах и истории, которые делают каждую выставку уникальной.\n"
+        "Привет! 👋 Я твой ИИ-гид по виртуальному музею 'Фанагория'. Моя цель — провести тебя по музею и рассказать об экспонатах и истории, которые делают каждую выставку уникальной.\n"
         "\n"
         "Но сначала давай познакомимся! Расскажи немного о себе: сколько тебе лет, чем ты увлекаешься? "
         "Что тебя привело в музей — ты здесь ради вдохновения, учебы или просто решил(а) интересно провести время? "
@@ -69,8 +69,8 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_text_in_chunks(clean_route, lambda text: update.message.reply_text(text, parse_mode="Markdown"))
         await update.message.reply_voice(voice_route)
         
-        with open("data/Slovcova/route.jpg", "rb") as photo: 
-            await update.message.reply_photo(photo, caption="Карта маршрута")
+        #with open("data/Slovcova/route.jpg", "rb") as photo: 
+            #await update.message.reply_photo(photo, caption="Карта маршрута")
 
         await update.message.reply_text(
             "Вы готовы начать экскурсию?", 
@@ -205,7 +205,7 @@ async def end_tour(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_description = context.user_data.get('user_description', '')
-    await query.message.reply_text(generate_goodbye_word(exhibition_description, user_description))
+    await query.message.reply_text(generate_goodbye_word(user_description))
 
 def main():
     app = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
