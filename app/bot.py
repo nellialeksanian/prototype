@@ -118,7 +118,7 @@ async def process_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     index = context.user_data['last_shown_artwork_index']
     artwork = context.user_data['artworks'][index]
     user_description = context.user_data.get('user_description', '')
-    await update.message.reply_text("Обрабатываю ваш вопрос... Подождите немного! ⏳")
+    await update.message.reply_text("Обрабатываю ваш запрос... Подождите немного! ⏳")
     answer = generate_answer(user_question, artwork, user_description)
     validation_res = evaluate_hallucinations(artwork.get("text"), answer, user_question)
     print(f'validation result:{ validation_res}')
@@ -161,7 +161,7 @@ async def next_artwork(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.answer()
     user_description = context.user_data.get('user_description', '')
-    await query.message.reply_text("Обрабатываю ваш вопрос... Подождите немного! ⏳")
+    await query.message.reply_text("Обрабатываю ваш запрос... Подождите немного! ⏳")
     artwork_info = generate_artwork_info(artwork.get("text"), user_description)
     #validation 
     validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
