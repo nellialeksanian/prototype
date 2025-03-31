@@ -79,7 +79,7 @@ def format_prompt( retrieved_documents, k, user_query=None, description_field='t
         user_content += f"User query: {user_query}\n"
     user_content += f"Экспонаты для маршрута:\n"
     for i in range(k):
-        user_content += f"{i + 1}. {retrieved_documents[i][description_field]}\n"
+        user_content += f"{i + 1}. {retrieved_documents.get(description_field)}\n"
     return user_content
     
 
@@ -116,10 +116,12 @@ def generate_route(k, user_description, user_query):
 
     artworks = [
         {
-            "text": ordered_artwork.get(description_field, ''),
-            "image": ordered_artwork.get('image', '')
+            "text": retrieved_documents.get(description_field, '')[i],
+            "image": retrieved_documents['image'][i]
         }
-        for ordered_artwork in retrieved_documents[:k]
-    ]
+        
+        for i in range(k)
 
+    ]
+    print(artworks)
     return response.content if hasattr(response, 'content') else str(response), artworks
