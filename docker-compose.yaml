@@ -1,6 +1,6 @@
 services:
   postgres_db:
-    image: postgres:15.3-bullseye
+    image: mirror.gcr.io/postgres:15.3-bullseye
     container_name: postgres_db
     restart: always
     environment:

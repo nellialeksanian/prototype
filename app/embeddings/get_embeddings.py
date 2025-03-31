@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer
+from transformers import AutoModel, AutoTokenizer
 # from datasets import Dataset
 # import pandas as pd
 # import torch
@@ -6,9 +7,11 @@ from sentence_transformers import SentenceTransformer
 # df = pd.read_csv('data/paintings_data_tables/dataset.csv')
 # df = pd.read_parquet('data/paintings_data_tables/Slovcova.parquet')
 # data = Dataset.from_pandas(df)
-
-model_emb = SentenceTransformer("BAAI/bge-m3")
-
+model_name = "BAAI/bge-m3"
+# model_emb = SentenceTransformer("BAAI/bge-m3"
+model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+model_emb = SentenceTransformer(modules=[model])
+print('Модель  загружена')
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # model_emb.to(device)
 
