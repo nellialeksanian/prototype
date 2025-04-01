@@ -10,7 +10,11 @@ from transformers import AutoModel, AutoTokenizer
 model_name = "BAAI/bge-m3"
 # model_emb = SentenceTransformer("BAAI/bge-m3"
 model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
-model_emb = SentenceTransformer(modules=[model])
+try:
+    model_emb = SentenceTransformer(modules=[model])
+    print(model_emb)
+except:
+    print('error')
 print('Модель  загружена')
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # model_emb.to(device)
