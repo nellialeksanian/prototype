@@ -3,16 +3,6 @@ import os
 from tqdm import tqdm
 from tika import unpack
 
-# def texts_list(files_path):
-#     data = []
-#     for filename in tqdm(os.listdir(files_path)): #рекурсия
-#         filepath = os.path.join(files_path, filename)
-#         with open(filepath, "r", encoding="utf-8") as f:
-#             text = f.read()
-#             title = filename
-#             data.append({'title': title, 'text': text})
-#     dataset = pd.DataFrame(data)
-#     return dataset
 def clean_content_pdf_docx(file_name):
     parsed_unpack = unpack.from_file(file_name, requestOptions={'timeout': None})
     content = parsed_unpack['content']
