@@ -1,3 +1,4 @@
+import os
 from sentence_transformers import SentenceTransformer
 # from datasets import Dataset
 # import pandas as pd
@@ -7,7 +8,13 @@ from sentence_transformers import SentenceTransformer
 # df = pd.read_parquet('data/paintings_data_tables/Slovcova.parquet')
 # data = Dataset.from_pandas(df)
 
-model_emb = SentenceTransformer("BAAI/bge-m3")
+try:
+    model_emb = SentenceTransformer("BAAI/bge-m3")
+except Exception as e:
+    MODEL_PATH = os.getenv("MODEL_PATH")
+    print("Error loading model:", e)
+    print("Trying to load from local path...")
+    model_emb = SentenceTransformer(MODEL_PATH)
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # model_emb.to(device)
