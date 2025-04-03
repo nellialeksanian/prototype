@@ -1,13 +1,8 @@
 import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
 from embeddings.embeddings_similarity import search
 from process_data.load_data import clean_text
-
-from dotenv import load_dotenv
-
-load_dotenv()
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 

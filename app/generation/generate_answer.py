@@ -1,9 +1,6 @@
 import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-from dotenv import load_dotenv
-
-load_dotenv()
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 
