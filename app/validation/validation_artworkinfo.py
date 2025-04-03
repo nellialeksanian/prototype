@@ -65,11 +65,14 @@ prompt = PromptTemplate(
 )
 
 
-llm_chain = LLMChain(llm=giga, prompt=prompt)
+llm_chain = prompt | giga
 
 def evaluate_hallucinations_artworkinfo(context, answer):
-    result = llm_chain.run({"context": context, "description": answer})
+    result = llm_chain.invoke({"context": context, "description": answer})
     question = "Опиши картину"
-    save_to_database(context, question, answer, result)
-    
-    return result
+    save_to_database(context, question, answer, result.content)
+    print(f'**tokens used for validation: {result}')
+    if hasattr(result, 'content'):
+        return result.content
+    else:
+        return str(result)
