@@ -11,7 +11,7 @@ load_dotenv()
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 
 giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', 
+                model='GigaChat-2', 
                 scope="GIGACHAT_API_CORP",
                 verify_ssl_certs=False)
 
