@@ -78,7 +78,7 @@ def format_prompt( retrieved_documents, k, user_query=None, description_field='t
         user_content += f"User query: {user_query}\n"
     user_content += f"Экспонаты для маршрута:\n"
     for i in range(k):
-        user_content += f"{i + 1}. {retrieved_documents.get(description_field)}\n"
+        user_content += f"{i + 1}. {retrieved_documents.get(description_field)[i]}\n"
     return user_content
     
 
