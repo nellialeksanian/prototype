@@ -1,5 +1,5 @@
 import os
-from sentence_transformers import SentenceTransformerfrom 
+from sentence_transformers import SentenceTransformer 
 from dotenv import load_dotenv
 load_dotenv()
 
