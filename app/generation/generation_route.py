@@ -70,60 +70,55 @@ prompt_template = ChatPromptTemplate([
     ("user", "Here are the artworks that should be included in the tour:\n{formatted_artworks}")
 ])
 
-def format_prompt( retrieved_documents, k, user_query=None):
+def format_prompt( retrieved_documents, k, user_query=None, description_field='text'):
     user_content = ''
     if user_query:
         user_content += f"User query: {user_query}\n"
     user_content += f"Экспонаты для маршрута:\n"
     for i in range(k):
-        user_content += f"{i + 1}. {retrieved_documents['text'][i]}\n"
+        user_content += f"{i + 1}. {retrieved_documents.get(description_field)[i]}\n"
     return user_content
     
 
 def generate_route(k, user_description, user_query):
     scores, retrieved_documents = search(user_query, k)
 
-    formatted_artworks = format_prompt(retrieved_documents, k)
+    formatted_artworks = format_prompt(retrieved_documents, k, user_query)
 
     chain = prompt_template | giga
-
     response = chain.invoke({
         "sys_prompt": SYS_PROMPT,
         "formatted_artworks": formatted_artworks,
         "user_description": user_description
     })
-    print(response)
-    print(f'***Generation with all parametrs: {response.content}')
 
     if len(response.content) < 350:
-        print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
-        formatted_prompt_no_query = format_prompt(retrieved_documents, k, user_query=None)
+        print("The BLACKLIST problem. Regeneration with the formatted descriptions.")
+        formatted_prompt = format_prompt(retrieved_documents, k, user_query, description_field='short_description')
 
         response = chain.invoke({
             "sys_prompt": SYS_PROMPT,
-            "formatted_artworks": formatted_prompt_no_query,
+            "formatted_artworks": formatted_prompt,
             "user_description": user_description
-
         })
-        print(response)
-        print(f'***Generation without query: {response.content}')
-        
+
     if len(response.content) < 350:
-        print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
+        print("The BLACKLIST problem. Sending the list of formatted descriptions.")
         user_content = f"Список экспонатов:\n"
         for i in range(k):
-            user_content += f"{i + 1}. {clean_text(retrieved_documents['text'][i])}\n\n"
+            user_content += f"{i + 1}. {clean_text(retrieved_documents[i]['short_description'])}\n\n"
         response = user_content
-        print(f'***Responce is the list of artworks')
+
+    description_field = 'short_description' if len(response.content) < 350 else 'text'
 
     artworks = [
         {
-            "text": retrieved_documents['text'][i],
+            "text": retrieved_documents.get(description_field, '')[i],
             "image": retrieved_documents['image'][i]
         }
+        
         for i in range(k)
+
     ]
-    if hasattr(response, 'content'):
-        return response.content, artworks
-    else:
-        return str(response), artworks
+    print(artworks)
+    return response.content if hasattr(response, 'content') else str(response), artworks

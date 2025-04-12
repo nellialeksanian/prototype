@@ -89,7 +89,6 @@ prompt = PromptTemplate(
 """
 )
 
-
 llm_chain = prompt | giga
 
 def evaluate_hallucinations(context, answer, question):

@@ -53,10 +53,6 @@ def clean_text(text):
     
     text = re.sub(r'(?m)^(-|\d+\.)\s.*(?:\n(?!\S))?', '', text)
     
-    text = re.sub(r'\[bookmark: [^\]]+\]', '', text)
-    
-    text = re.sub(r'(?m)^\d{4}(?:\sгод)?$', '', text)
-    
     text = re.sub(r'\n{3,}', '\n\n', text).strip()
     
     return text

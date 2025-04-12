@@ -16,14 +16,12 @@ def save_to_database(context, question, answer, result):
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
 
-        # Insert data into table
         insert_query = sql.SQL("""
             INSERT INTO hallucination_evaluations (context, question, answer, result)
             VALUES (%s, %s, %s, %s)
         """)
         cursor.execute(insert_query, (context, question, answer, result))
 
-        # Commit changes and close connection
         conn.commit()
         cursor.close()
         conn.close()

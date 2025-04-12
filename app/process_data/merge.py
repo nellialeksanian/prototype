@@ -9,5 +9,4 @@ df = pd.merge(df1, df2[['title', 'image']], on='title', how='left')
 
 print(df)
 print(df.info())
-# print(df.info)
 df.to_parquet('data/paintings_data_tables/full_data.parquet')
