@@ -13,9 +13,9 @@ template_info = """I want you to interact with the user based on their USER DESC
 
    Instructions:
         - Respond in Russian language
-        - !!! IMPORTANT: AVOID using greetings such as "Привет" or "Здравствуйте" or any similar phrases. Respond only with the main content. !!!
-        - The message should consist of 2-3 sentences, written in a style that matches the USER DESCRIPTION.  
-        - your answer SHOULD ONLY be the goodbye message and NOTHING ELSE
+        - !!! IMPORTANT: Use NO greetings such as "Привет" or "Здравствуйте" or any similar phrases. Respond only with the main content. !!!
+        - The message should consist of 2-3 sentences, written in a style that matches the USER DESCRIPTION. 
+    
     USER DESCRIPTION:  
     =====  
     {user_description}  
@@ -25,8 +25,6 @@ template_info = """I want you to interact with the user based on their USER DESC
 
         Благодарю вас за участие в экскурсии по виртуальному музею "Фанагория" Мы надеемся, что наша прогулка по культуре и истории оставила у вас массу впечатлений.
         Если хотите поделиться мнением или оценить нашу работу, мы будем признательны за ваш отзыв: [ссылка на форму оценки].
-        Не пропустите будущие выставки и мероприятия Музея.
-
 """  
 
 giga = GigaChat(credentials=gigachat_token,

@@ -122,5 +122,4 @@ def generate_route(k, user_description, user_query):
         for i in range(k)
 
     ]
-    # print(artworks)
     return response.content if hasattr(response, 'content') else str(response), artworks

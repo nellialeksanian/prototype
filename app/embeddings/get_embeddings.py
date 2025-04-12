@@ -1,7 +1,6 @@
 from sentence_transformers import SentenceTransformer
-from transformers import AutoModel
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -12,7 +11,6 @@ except Exception as e:
     print("Error loading model:", e)
     print("Trying to load from local path...")
     model_emb = SentenceTransformer(MODEL_PATH)
-
 
 def get_embeddings(text_list):
     embeddings = model_emb.encode(
