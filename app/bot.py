@@ -97,9 +97,9 @@ async def handle_format(query: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data.in_(["short", "medium", "long"]))
 async def handle_tour_length(callback: CallbackQuery, state: FSMContext):
     tour_lengths = {
-        "short": random.randint(2, 3),
-        "medium": random.randint(8, 12),
-        "long": random.randint(13, 20)
+        "short": random.randint(4, 9),
+        "medium": random.randint(10, 18),
+        "long": random.randint(19, 27)
     }
 
     top_k = tour_lengths.get(callback.data, 5)
