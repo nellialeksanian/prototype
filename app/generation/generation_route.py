@@ -85,42 +85,47 @@ def format_prompt( retrieved_documents, k, user_query=None, description_field='t
 def generate_route(k, user_description, user_query):
     scores, retrieved_documents = search(user_query, k)
 
-    formatted_artworks = format_prompt(retrieved_documents, k, user_query)
+    formatted_artworks = format_prompt(retrieved_documents, k)
 
     chain = prompt_template | giga
+
     response = chain.invoke({
         "sys_prompt": SYS_PROMPT,
         "formatted_artworks": formatted_artworks,
         "user_description": user_description
     })
+    print(response)
+    print(f'***Generation with all parametrs: {response.content}')
 
     if len(response.content) < 350:
-        print("The BLACKLIST problem. Regeneration with the formatted descriptions.")
-        formatted_prompt = format_prompt(retrieved_documents, k, user_query, description_field='short_description')
+        print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
+        formatted_prompt_no_query = format_prompt(retrieved_documents, k, user_query=None)
 
         response = chain.invoke({
             "sys_prompt": SYS_PROMPT,
-            "formatted_artworks": formatted_prompt,
+            "formatted_artworks": formatted_prompt_no_query,
             "user_description": user_description
-        })
 
+        })
+        print(response)
+        print(f'***Generation without query: {response.content}')
+        
     if len(response.content) < 350:
-        print("The BLACKLIST problem. Sending the list of formatted descriptions.")
+        print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
         user_content = f"Список экспонатов:\n"
         for i in range(k):
-            user_content += f"{i + 1}. {clean_text(retrieved_documents[i]['short_description'])}\n\n"
+            user_content += f"{i + 1}. {clean_text(retrieved_documents['text'][i])}\n\n"
         response = user_content
-
-    description_field = 'short_description' if len(response.content) < 350 else 'text'
+        print(f'***Responce is the list of artworks')
 
     artworks = [
         {
-            "text": retrieved_documents.get(description_field, '')[i],
+            "text": retrieved_documents['text'][i],
             "image": retrieved_documents['image'][i]
         }
-        
         for i in range(k)
-
     ]
-    print(artworks)
-    return response.content if hasattr(response, 'content') else str(response), artworks
+    if hasattr(response, 'content'):
+        return response.content, artworks
+    else:
+        return str(response), artworks

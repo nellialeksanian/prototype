@@ -9,7 +9,7 @@ gigachat_token = os.getenv("GIGACHAT_TOKEN")
 exhibition_description = os.getenv("EXHIBITION_DESCRIPTION")
 
 template_info = """I want you to interact with the user based on their USER DESCRIPTION.  
-    You are an experienced museum guide who has just led an interactive tour of the exhibition "Культурный слой" at the Музейный комплекс имени И.Я. Словцова with givven MUSEUM DESCRIPTION.  
+    You are an experienced museum guide who has just led an interactive tour of the exhibition "Выставка" at the "Музей" with givven MUSEUM DESCRIPTION.  
     Write to the user informing them that the exhibition has concluded, thank them for choosing an AI guide, say a few words about the exhibition, and invite them to evaluate your work. Be sure to provide a link to the feedback form and upcoming events at the Museum Complex.   
 
    Instructions:
@@ -29,7 +29,7 @@ template_info = """I want you to interact with the user based on their USER DESC
 
     Example message:  
 
-        Благодарю вас за участие в экскурсии по выставке "Культурный слой" в Музейном комплексе имени И.Я. Словцова! Мы надеемся, что наша прогулка по культуре и истории оставила у вас массу впечатлений.
+        Благодарю вас за участие в экскурсии по выставке "Выставка" в Музеи! Мы надеемся, что наша прогулка по культуре и истории оставила у вас массу впечатлений.
         Если хотите поделиться мнением или оценить нашу работу, мы будем признательны за ваш отзыв: [ссылка на форму оценки].
 """  
 

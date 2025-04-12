@@ -54,7 +54,7 @@ async def start(message: Message, state: FSMContext):
     await state.update_data(state='route_mode', current_artwork_index=0)
     keyboard = ReplyKeyboardMarkup(keyboard=[[types.KeyboardButton(text="Старт")]], resize_keyboard=True, one_time_keyboard=True)
     await message.answer(
-                "Привет! 👋 Я — твой персональный гид по выставке «Культурный слой»  .\n"
+                "Привет! 👋 Я — твой персональный гид по выставке «Выставка»  .\n"
         "\n"
         "Я создан на базе модели GigaChat — это значит, что я умею подстраиваться под твои интересы и вести настоящую живую беседу 🤖✨\n"
         "\n"
@@ -229,7 +229,7 @@ async def end_tour(query: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await query.answer()
     goodbye_text = generate_goodbye_word(exhibition_description, data.get("user_description", ""))
-    await query.message.answer(goodbye_text + "\n\nПродолжить знакомство с миром искусства вы можете на сайте: https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/")
+    await query.message.answer(goodbye_text + "\n\nПродолжить знакомство с миром искусства вы можете на сайте: ...")
 
 async def main():
     await dp.start_polling(bot)
