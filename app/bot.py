@@ -229,7 +229,7 @@ async def end_tour(query: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await query.answer()
     goodbye_text = generate_goodbye_word(data.get("user_description", ""))
-    await query.message.answer(goodbye_text + "\n\nПродолжить знакомство с миром искусства вы можете на сайте: https://phanagoria-museum.ru/virtual-museum/index.html#")
+    await query.message.answer(goodbye_text + "\n\nПродолжить знакомство с миром искусства вы можете на сайте: https://phanagoria-museum.ru/virtual-museum/index.html")
 
 async def main():
     await dp.start_polling(bot)
