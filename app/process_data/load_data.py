@@ -3,7 +3,7 @@ from datasets import Dataset
 import re
 
 def load_data():
-    df_loaded = pd.read_parquet('data/Museum/museum_embeddings.parquet')
+    df_loaded = pd.read_parquet('data/Slovcova/Slovcova_embeddings_map_img.parquet')
     embeddings_dataset = Dataset.from_pandas(df_loaded)
     embeddings_dataset.add_faiss_index(column="embeddings")
 
