@@ -2,8 +2,9 @@ import pandas as pd
 from datasets import Dataset
 import re
 
+
 def load_data():
-    df_loaded = pd.read_parquet('data/Museum/museum_embeddings.parquet')
+    df_loaded = pd.read_parquet('data/Slovcova/Slovcova_embeddings_map_img.parquet')
     embeddings_dataset = Dataset.from_pandas(df_loaded)
     embeddings_dataset.add_faiss_index(column="embeddings")
 
@@ -46,6 +47,21 @@ async def send_text_with_image(text, image_url, message_func, photo_func, max_ca
 
     if remaining_text:
         await send_text_in_chunks("\n\n".join(remaining_text), message_func) 
+
+
+async def send_images_then_text_url(text, image_urls, message_func, photo_func):
+    for url in image_urls:
+        print(f"Sending image from URL: {url}")
+        try:  
+            
+            await photo_func(url)
+
+        except Exception as e:
+            print(f"Failed to send image from {url}: {e}")
+            continue  # Skip this image and move to the next
+
+    # After all images are sent, send the text in chunks
+    await send_text_in_chunks(text, message_func)
 
 
 def clean_text(text):
