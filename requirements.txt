@@ -1,4 +1,4 @@
-python-telegram-bot
+aiogram
 langchain==0.3.18
 langchain-community   
 langchain-gigachat 
