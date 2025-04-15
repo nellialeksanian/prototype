@@ -1,6 +1,7 @@
 import pandas as pd
 from datasets import Dataset
 import re
+from aiogram.types import InputMediaPhoto, URLInputFile
 
 
 def load_data():
@@ -47,22 +48,26 @@ async def send_text_with_image(text, image_url, message_func, photo_func, max_ca
 
     if remaining_text:
         await send_text_in_chunks("\n\n".join(remaining_text), message_func) 
+        
 
+async def send_images_then_text_group(text, image_urls, message_func, bot, chat_id):
+    
+    for i in range(0, len(image_urls), 10):
+        media_group = []
+        for url in image_urls[i:i + 10]:
+            try:
+                file = URLInputFile(url)
+                media_group.append(InputMediaPhoto(media=file))
+            except Exception as e:
+                print(f"Failed to attach photo from {url}: {e}")
 
-async def send_images_then_text_url(text, image_urls, message_func, photo_func):
-    for url in image_urls:
-        print(f"Sending image from URL: {url}")
-        try:  
-            
-            await photo_func(url)
+        if media_group:
+            try:
+                await bot.send_media_group(chat_id=chat_id, media=media_group)
+            except Exception as e:
+                print(f"Failed to send media group: {e}")
 
-        except Exception as e:
-            print(f"Failed to send image from {url}: {e}")
-            continue  # Skip this image and move to the next
-
-    # After all images are sent, send the text in chunks
     await send_text_in_chunks(text, message_func)
-
 
 def clean_text(text):
     text = re.sub(r'\b(?:https?://|www\.|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:/\S*)?\b', '', text)

@@ -15,7 +15,7 @@ from generation.generate_voice import converter_text_to_voice
 from generation.generation_route import generate_route
 from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_answer import generate_answer, generate_answer_max
-from process_data.load_data import send_images_then_text_url, send_text_in_chunks, send_text_with_image
+from process_data.load_data import send_images_then_text_group, send_text_in_chunks
 from generation.generate_goodbye_word import generate_goodbye_word, exhibition_description
 from validation.validation_QA import evaluate_hallucinations
 from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
@@ -155,19 +155,6 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
     clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
     voice_artwork = await converter_text_to_voice(clean_artwork_info)
     
-    # send_images = data.get('send_images', False)
-    # image_url = artwork.get("image")
-
-    # if send_images and image_url:
-    #     await send_text_with_image(
-    #         artwork_info, 
-    #         image_url,
-    #         lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN), 
-    #         lambda url, caption: query.message.answer_photo(url, caption=caption)
-    #     )
-    # else:
-    #     await send_text_in_chunks(artwork_info, lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN))
-
     send_images = data.get('send_images', False)
     image_urls = artwork.get("image")
     print(f'image urls: {image_urls}')
@@ -176,12 +163,12 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
         image_urls = [url.strip() for url in image_urls.split() if url.strip()]
         logging.debug(f"Image URLs to send: {image_urls}")
 
-        await send_images_then_text_url(
+        await send_images_then_text_group(
             artwork_info,
             image_urls,
             lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN),
-            lambda url: query.message.answer_photo(url)
-
+            bot,
+            query.message.chat.id
         )
     else:
         await send_text_in_chunks(artwork_info, lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN))
