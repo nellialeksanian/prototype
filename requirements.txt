@@ -14,3 +14,4 @@ torch
 transformers
 gTTS
 psycopg2-binary
+ruaccent
