@@ -12,7 +12,7 @@ import re
 import logging
 
 from generation.generate_voice import converter_text_to_voice
-from generation.generation_route import generate_route
+from generation.generation_route import route_builder
 from generation.generate_artwork_info import generate_artwork_info
 from generation.generate_answer import generate_answer, generate_answer_max
 from process_data.load_data import send_images_then_text_group, send_text_in_chunks
@@ -122,7 +122,7 @@ async def generate_route_response(message: Message, state: FSMContext):
     user_description = data.get('user_description', '')
     top_k = data.get("top_k", 5)
     logging.debug(f"top_k: {top_k}")
-    route, artworks = generate_route(top_k, user_description, user_query)
+    route, artworks = route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
     await state.update_data(artworks=artworks)
 
     clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)

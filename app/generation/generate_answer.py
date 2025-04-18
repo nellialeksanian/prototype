@@ -13,7 +13,8 @@ Answer the QUESTION using the provided ARTWORK INFO.
    Instructions:
         - Respond in Russian language
         - If the QUESTION requires additional information that is not available in the current context, inform the user that you don't have enough data to provide a precise answer. 
-
+        - !!! IMPORTANT: Use NO greetings such as "Привет" or "Здравствуйте" or any similar phrases. Respond only with the main content. !!!
+        
     QUESTION:
     =====
     {user_question}
