@@ -1,6 +1,7 @@
 import os
 import asyncio
 from aiogram import Bot, Dispatcher, F, types
+from aiogram.exceptions import TelegramNetworkError
 from aiogram.types import (ReplyKeyboardMarkup, Message, CallbackQuery)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.enums import ParseMode
@@ -272,6 +273,24 @@ async def end_tour_handler(message_or_query, state: FSMContext):
         await query.message.answer(feedback_form, parse_mode=ParseMode.MARKDOWN)
 
     await state.clear()
+
+# Comment out the function below if it causes bugs
+@dp.error()
+async def error_handler(update, exception):
+    if isinstance(exception, TelegramNetworkError):
+        logging.error(f"Network error while processing update: {exception}")
+
+        try:
+            if isinstance(update, types.CallbackQuery):
+                await update.answer("Пожалуйста, нажмите на кнопку ещё раз", show_alert=True)
+            elif isinstance(update, types.Message):
+                await update.answer("Пожалуйста, нажмите на кнопку ещё раз")
+        except Exception as e:
+            logging.error(f"Error while sending a message to user: {e}")
+        
+        return True
+
+    return False
 
 async def main():
     await dp.start_polling(bot)
