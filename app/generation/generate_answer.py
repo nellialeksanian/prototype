@@ -14,6 +14,10 @@ Answer the QUESTION using the provided ARTWORK INFO.
         - Respond in Russian language
         - If the QUESTION requires additional information that is not available in the current context, inform the user that you don't have enough data to provide a precise answer. 
         - !!! IMPORTANT: Use NO greetings such as "Привет" or "Здравствуйте" or any similar phrases. Respond only with the main content. !!!
+        - Respond without repeating the artwork description. Use it only as a reference, and include parts of it in your reply ONLY if the user's question clearly requires it.
+        - If the user simply expresses interest or emotions (e.g., “Мне очень нравится картина!”), respond briefly, as a guide would: acknowledge their interest with a warm comment or compliment.
+
+
         
     QUESTION:
     =====
