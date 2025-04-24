@@ -15,3 +15,5 @@ transformers
 gTTS
 psycopg2-binary
 ruaccent
+matplotlib
+opencv-python

@@ -5,6 +5,9 @@ from itertools import combinations
 from langchain_gigachat.chat_models import GigaChat
 from langchain_core.prompts import ChatPromptTemplate
 import json
+import matplotlib.pyplot as plt
+import cv2
+import uuid
 from dotenv import load_dotenv
 
 from embeddings.embeddings_similarity import search
@@ -178,6 +181,58 @@ class MuseumRouteBuilder:
             except nx.NetworkXNoPath:
                 print(f"⚠ Нет пути между {tsp_route[i]} и {tsp_route[i + 1]}")
         return full_real_path
+    
+    def draw_colored_route(self, full_real_path, improved_route, background_image_path):
+        """Визуализирует маршрут и возвращает изображение в BytesIO для Telegram."""
+        with open(self.graph_file, "r", encoding="utf-8") as f:
+            graph_data = json.load(f)
+
+        image = cv2.imread(background_image_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        G = nx.Graph()
+        for node in graph_data["nodes"]:
+            G.add_node(node["id"], pos=(node["x"], node["y"]))
+        for edge in graph_data["edges"]:
+            G.add_edge(edge["from"], edge["to"])
+
+        pos = nx.get_node_attributes(G, "pos")
+
+        subgraph = nx.Graph()
+        for i in range(len(full_real_path) - 1):
+            u, v = full_real_path[i], full_real_path[i + 1]
+            if G.has_edge(u, v):
+                subgraph.add_edge(u, v)
+        for node in full_real_path:
+            subgraph.add_node(node)
+
+        node_colors = ['#8b00ff' if node in improved_route else '#cccccc' for node in subgraph.nodes]
+        node_size = [200 if node in improved_route else 100 for node in subgraph.nodes]
+
+        random_filename = str(uuid.uuid4()) + '.jpg'  # Вы можете использовать любой другой формат
+        output_image_path = os.path.join('data', 'images', random_filename)  # Путь для сохранения
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.imshow(image)
+        # Убедитесь, что директория существует
+        os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
+        nx.draw(subgraph,
+                pos,
+                ax=ax,
+                with_labels=True,
+                node_color=node_colors,
+                edge_color="orange",
+                node_size=node_size,
+                font_size=7,
+                width=2,
+                font_color="white")
+
+        plt.axis('off')
+        plt.tight_layout()
+        plt.savefig(output_image_path, dpi=300, bbox_inches='tight', pad_inches=0)
+        plt.close()
+
+        return output_image_path
 
     def build_route(self, G, retrieved_documents, k=5):
         titles = retrieved_documents['title']
@@ -208,6 +263,12 @@ class MuseumRouteBuilder:
 
         print(f"✅ Оптимизированный маршрут: {improved_route}")
 
+        full_real_path = self.build_full_route(G, improved_route)
+
+        print("✅ Полный маршрут по всем узлам:", full_real_path)
+
+        output_image_path = self.draw_colored_route(full_real_path, improved_route, 'data/Slovcova/route.jpg')
+
         # Собираем информацию о произведениях
         ordered_artworks = []
         added_titles = set()
@@ -225,8 +286,8 @@ class MuseumRouteBuilder:
                 })
                 added_titles.add(title)
 
-        return improved_route, ordered_artworks
-
+        return improved_route, ordered_artworks, output_image_path
+    
     def format_prompt(self, ordered_artworks, k, user_query=None, description_field='text'):
         """Форматирование запроса для модели."""
         user_content = f"Экспонаты для маршрута:\n"
@@ -244,7 +305,7 @@ class MuseumRouteBuilder:
         start_time_text = time.time()
         scores, retrieved_documents = search(user_query, k)
         G = self.load_graph()
-        route, ordered_artworks = self.build_route(G, retrieved_documents, k)
+        route, ordered_artworks, output_image_path = self.build_route(G, retrieved_documents, k)
         formatted_artworks = self.format_prompt(ordered_artworks, k, user_query)
 
         chain = self.prompt_template | self.giga
@@ -284,7 +345,7 @@ class MuseumRouteBuilder:
             for ordered_artwork in ordered_artworks[:k]
         ]
 
-        return response.content if hasattr(response, 'content') else str(response), artworks, generation_time_text
+        return response.content if hasattr(response, 'content') else str(response), artworks, generation_time_text, output_image_path
     
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 graph_file = os.getenv('GRAPH_FILE')

@@ -3,7 +3,7 @@ import uuid
 import asyncio
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.exceptions import TelegramNetworkError
-from aiogram.types import (ReplyKeyboardMarkup, Message, CallbackQuery)
+from aiogram.types import (ReplyKeyboardMarkup, Message, CallbackQuery, FSInputFile)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
@@ -146,7 +146,7 @@ async def generate_route_response(message: Message, state: FSMContext):
         user_description = data.get('user_description', '')
         top_k = data.get("top_k", 5)
         logging.info(f"top_k: {top_k}")
-        route, artworks, generation_time_text = route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
+        route, artworks, generation_time_text, output_image_path = route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
         await state.update_data(artworks=artworks)
 
         clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)
@@ -157,6 +157,13 @@ async def generate_route_response(message: Message, state: FSMContext):
         await send_text_in_chunks(clean_route, lambda text: message.answer(text, parse_mode=ParseMode.MARKDOWN))
         if voice_route:
             await message.answer_voice(voice_route)
+
+        try:
+            photo = FSInputFile(output_image_path) 
+            await message.answer_photo(photo, caption="Карта маршрута")
+        except Exception as e:
+            logging.error(f"Error with sending photo: {e}")
+
         titles = []
         for artwork in artworks:
             titles.append(artwork.get('title'))
@@ -165,9 +172,7 @@ async def generate_route_response(message: Message, state: FSMContext):
 
     except Exception as e:
         logging.error(f"Route generation error: {e}")
-        await message.answer("Похоже, что ваши интересы оказались слишком объемными для генерации маршрута. Модель попыталась учесть слишком много информации, и текст маршрут получился слишком длинным.")
-        
-        # Запрос на перегенерацию маршрута
+        await message.answer("Возникла ошибка, возможно ваш запрос оказался слишком сложным для меня")
         await state.set_state(TourState.route_mode)
         await message.answer("Давайте попробуем снова! Пожалуйста, уточните свои предпочтения, и мы перегенерируем маршрут. ⏳")
 
