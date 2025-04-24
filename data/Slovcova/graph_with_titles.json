@@ -427,6 +427,16 @@
             "distance": 1286
         },
         {
+            "from": "10",
+            "to": "22",
+            "distance": 136
+        },   
+        {   
+            "from": "15",
+            "to": "17",
+            "distance": 334
+        },
+        {
             "from": "10.1",
             "to": "30",
             "distance": 894
@@ -545,6 +555,31 @@
             "from": "23",
             "to": "12.1",
             "distance": 229
+        },
+        {
+            "from": "11.1",
+            "to": "17",
+            "distance": 641
+        },
+        {
+            "from": "17",
+            "to": "22.1",
+            "distance": 778
+        },
+        {
+            "from": "20",
+            "to": "17",
+            "distance": 470
+        },
+        {
+            "from": "20",
+            "to": "22.1",
+            "distance": 692
+        },
+        {
+            "from": "2",
+            "to": "3",
+            "distance": 639
         },
         {
             "from": "20",
