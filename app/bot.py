@@ -13,7 +13,7 @@ import logging
 
 from generation.generate_voice import converter_text_to_voice
 from generation.generation_route import generate_route
-from generation.generate_artwork_info import generate_artwork_info
+from generation.generate_artwork_info import generate_artwork_info, generate_artwork_info_max
 from generation.generate_answer import generate_answer, generate_answer_max
 from process_data.load_data import send_images_then_text_group, send_text_in_chunks
 from generation.generate_goodbye_word import generate_goodbye_word, exhibition_description
@@ -151,6 +151,12 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
     artwork_info = generate_artwork_info(artwork.get("text"), user_description)
     validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
     logging.debug(f'validation result:{validation_res}')
+    
+    if validation_res.lower() == "true":
+        artwork_info = generate_artwork_info_max(artwork.get("text"), user_description)
+        validation_res_max = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
+        if validation_res_max.lower() == "true":
+            artwork_info = artwork.get("text")
     
     clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
     voice_artwork = await converter_text_to_voice(clean_artwork_info)
