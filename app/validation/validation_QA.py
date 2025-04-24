@@ -1,51 +1,13 @@
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 import os
 from dotenv import load_dotenv
-import psycopg2
-from psycopg2 import sql
+
+from sql.create_tables import save_to_database
 
 load_dotenv() 
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
-DATABASE_URL = os.getenv("DATABASE_URL")
-# DB_HOST = os.getenv("DB_HOST")
-# DB_PORT = os.getenv("DB_PORT", 5432)
-# DB_NAME = os.getenv("DB_NAME")
-# DB_USER = os.getenv("DB_USER")
-# DB_PASSWORD = os.getenv("DB_PASSWORD")
-
-def save_to_database(context, question, answer, result):
-    try:
-        # Connect to PostgreSQL
-        
-        # conn = psycopg2.connect(
-        #     host=DB_HOST,
-        #     port=DB_PORT,
-        #     dbname=DB_NAME,
-        #     user=DB_USER,
-        #     password=DB_PASSWORD
-        # )
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-
-        # Insert data into table
-        insert_query = sql.SQL("""
-            INSERT INTO hallucination_evaluations (context, question, answer, result)
-            VALUES (%s, %s, %s, %s)
-        """)
-        cursor.execute(insert_query, (context, question, answer, result))
-
-        # Commit changes and close connection
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("Data saved successfully!")
-
-    except Exception as e:
-        print(f"Error saving to database: {e}")
-
 
 giga = GigaChat (
     credentials=gigachat_token,
@@ -93,12 +55,9 @@ prompt = PromptTemplate(
 llm_chain = prompt | giga
 
 
-def evaluate_hallucinations(context, answer, question):
+def evaluate_hallucinations(session_id, context, answer, question):
     result = llm_chain.invoke({"context": context, "answer": answer, "question": question})
-    save_to_database(context, question, answer, result.content)
     print(f'**tokens used for validation: {result}')
-    if hasattr(result, 'content'):
-        return result.content
-    else:
-        return str(result)
-
+    result = result.content if hasattr(result, 'content') else str(result)
+    save_to_database(session_id, context, question, answer, result)
+    return result

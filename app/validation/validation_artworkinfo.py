@@ -1,34 +1,11 @@
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 import os
 from dotenv import load_dotenv
-import psycopg2
-from psycopg2 import sql
-
+from sql.create_tables import save_to_database
 load_dotenv() 
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-def save_to_database(context, question, answer, result):
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-
-        insert_query = sql.SQL("""
-            INSERT INTO hallucination_evaluations (context, question, answer, result)
-            VALUES (%s, %s, %s, %s)
-        """)
-        cursor.execute(insert_query, (context, question, answer, result))
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("Data saved successfully!")
-
-    except Exception as e:
-        print(f"Error saving to database: {e}")
 
 giga = GigaChat (
     credentials=gigachat_token,
@@ -64,15 +41,12 @@ prompt = PromptTemplate(
 """
 )
 
-
 llm_chain = prompt | giga
 
-def evaluate_hallucinations_artworkinfo(context, answer):
+def evaluate_hallucinations_artworkinfo(session_id, context, answer):
     result = llm_chain.invoke({"context": context, "description": answer})
     question = "Опиши картину"
-    save_to_database(context, question, answer, result.content)
     print(f'**tokens used for validation: {result}')
-    if hasattr(result, 'content'):
-        return result.content
-    else:
-        return str(result)
+    result = result.content if hasattr(result, 'content') else str(result)
+    save_to_database(session_id, context, question, answer, result)
+    return result

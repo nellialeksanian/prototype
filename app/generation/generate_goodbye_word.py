@@ -2,11 +2,13 @@ import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 exhibition_description = os.getenv("EXHIBITION_DESCRIPTION")
+
 
 template_info = """I want you to interact with the user based on their USER DESCRIPTION.  
     You are an experienced museum guide who has just led an interactive tour of the exhibition "Культурный слой" at the Музейный комплекс имени И.Я. Словцова with givven MUSEUM DESCRIPTION.  
@@ -42,10 +44,9 @@ prompt_info = PromptTemplate.from_template(template_info)
 llm_chain = prompt_info | giga
 
 def generate_goodbye_word(exhibition_description, user_description):
+    start_time_text = time.time()
     parsed_unpack = open(exhibition_description, encoding="utf-8").read()
-    print(f'Annotation: {parsed_unpack}')
     response =  llm_chain.invoke({"info": parsed_unpack, "user_description": user_description})
-    if hasattr(response, 'content'):
-        return response.content 
-    else:
-        return str(response)
+    end_time_text = time.time()
+    generation_time_text = float(end_time_text - start_time_text)
+    return response.content if hasattr(response, 'content') else str(response), generation_time_text

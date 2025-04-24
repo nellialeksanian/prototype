@@ -1,4 +1,5 @@
 import networkx as nx
+import time
 import os
 from itertools import combinations
 from langchain_gigachat.chat_models import GigaChat
@@ -14,7 +15,7 @@ load_dotenv()
 class MuseumRouteBuilder:
     def __init__(self, gigachat_token, graph_file="data/Slovcova/graph_with_titles.json"):
         self.giga = GigaChat(credentials=gigachat_token,
-                             model='GigaChat',
+                             model='GigaChat-2',
                              scope="GIGACHAT_API_CORP",
                              verify_ssl_certs=False)
         self.graph_file = graph_file
@@ -180,7 +181,6 @@ class MuseumRouteBuilder:
 
     def build_route(self, G, retrieved_documents, k=5):
         titles = retrieved_documents['title']
-        print(f'titles: {titles}')
 
         # Находим подходящие узлы по названиям
         artwork_nodes = self.find_artwork_nodes(G, titles)
@@ -233,7 +233,6 @@ class MuseumRouteBuilder:
         
         if user_query:
             user_content += f"User query: {user_query}\n"
-        print(k, type(k))
         for i in range(k):
             user_content += f"{i + 1}. {ordered_artworks[i][description_field]}\n"
 
@@ -242,6 +241,7 @@ class MuseumRouteBuilder:
     
     def generate_route(self, k, user_description, user_query):
         """Генерация маршрута с помощью GigaChat."""
+        start_time_text = time.time()
         scores, retrieved_documents = search(user_query, k)
         G = self.load_graph()
         route, ordered_artworks = self.build_route(G, retrieved_documents, k)
@@ -271,17 +271,20 @@ class MuseumRouteBuilder:
                 user_content += f"{i + 1}. {clean_text(ordered_artworks[i]['short_description'])}\n\n"
             response = user_content
 
-        description_field = 'short_description' if len(response.content) < 350 else 'text'
+        end_time_text = time.time()
+        generation_time_text = float(end_time_text - start_time_text)
 
+        description_field = 'short_description' if len(response.content) < 350 else 'text'
         artworks = [
             {
+                "title": ordered_artwork.get('title', ''),
                 "text": ordered_artwork.get(description_field, ''),
                 "image": ordered_artwork.get('image', '')
             }
             for ordered_artwork in ordered_artworks[:k]
         ]
 
-        return response.content if hasattr(response, 'content') else str(response), artworks
+        return response.content if hasattr(response, 'content') else str(response), artworks, generation_time_text
     
 gigachat_token = os.getenv("GIGACHAT_TOKEN")
 graph_file = os.getenv('GRAPH_FILE')

@@ -1,4 +1,5 @@
 import os
+import uuid
 import asyncio
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.exceptions import TelegramNetworkError
@@ -12,6 +13,7 @@ import random
 import re
 import logging
 
+from sql.create_tables import save_sessin_info_to_database, save_generated_answer_to_database, save_generated_artwork_info_to_database, save_generated_goodbye_to_database, save_generated_route_to_database
 from generation.generate_voice import converter_text_to_voice
 from generation.generation_route import route_builder
 from generation.generate_artwork_info import generate_artwork_info, generate_artwork_info_max
@@ -22,7 +24,7 @@ from validation.validation_QA import evaluate_hallucinations
 from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.StreamHandler()
@@ -51,8 +53,14 @@ def create_keyboard(buttons):
 @dp.message(F.text == "/start")
 @dp.message(F.text == "Старт")
 async def start(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    username = message.from_user.username
+    session_id = str(uuid.uuid4())
+    save_sessin_info_to_database(session_id, user_id, username)
     await state.set_state(TourState.awaiting_description)
-    await state.update_data(state='route_mode', current_artwork_index=0)
+    await state.update_data(state='route_mode', current_artwork_index=0,
+        session_id=session_id, user_id=user_id)
+    data = await state.get_data()
     keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [types.KeyboardButton(text="Старт")],
@@ -128,60 +136,82 @@ async def handle_tour_length(callback: CallbackQuery, state: FSMContext):
 @dp.message(TourState.route_mode)
 async def generate_route_response(message: Message, state: FSMContext):
     data = await state.get_data()
+    session_id = data.get("session_id")
     if message.text == "Завершить экскурсию":
         await end_tour_handler(message, state)
         return  
     await message.answer("Подождите немного, я готовлю ваш маршрут... ⏳")
-    user_query = message.text
-    user_description = data.get('user_description', '')
-    top_k = data.get("top_k", 5)
-    logging.debug(f"top_k: {top_k}")
-    route, artworks = route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
-    await state.update_data(artworks=artworks)
+    try:
+        user_query = message.text
+        user_description = data.get('user_description', '')
+        top_k = data.get("top_k", 5)
+        logging.info(f"top_k: {top_k}")
+        route, artworks, generation_time_text = route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
+        await state.update_data(artworks=artworks)
 
-    clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)
-    clean_route = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,:"«»]', '', route)
-    voice_route = await converter_text_to_voice(clean_route_for_gen)
+        clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)
+        clean_route = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,:"«»]', '', route)
+        voice_route, generation_time_audio = await converter_text_to_voice(clean_route_for_gen)
+        voice_filename = voice_route.filename 
 
-    await send_text_in_chunks(clean_route, lambda text: message.answer(text, parse_mode=ParseMode.MARKDOWN))
-    if voice_route:
-        await message.answer_voice(voice_route)
-    await message.answer("Вы готовы начать экскурсию?", reply_markup=create_keyboard([("Да, я готов(а)", "next_artwork")]))
+        await send_text_in_chunks(clean_route, lambda text: message.answer(text, parse_mode=ParseMode.MARKDOWN))
+        if voice_route:
+            await message.answer_voice(voice_route)
+        titles = []
+        for artwork in artworks:
+            titles.append(artwork.get('title'))
+        save_generated_route_to_database(session_id, user_description, user_query, top_k, titles, clean_route, voice_filename, generation_time_text, generation_time_audio)
+        await message.answer("Вы готовы начать экскурсию?", reply_markup=create_keyboard([("Да, я готов(а)", "next_artwork")]))
+
+    except Exception as e:
+        logging.error(f"Route generation error: {e}")
+        await message.answer("Похоже, что ваши интересы оказались слишком объемными для генерации маршрута. Модель попыталась учесть слишком много информации, и текст маршрут получился слишком длинным.")
+        
+        # Запрос на перегенерацию маршрута
+        await state.set_state(TourState.route_mode)
+        await message.answer("Давайте попробуем снова! Пожалуйста, уточните свои предпочтения, и мы перегенерируем маршрут. ⏳")
 
 @dp.callback_query(F.data == "next_artwork")
 async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    session_id = data.get("session_id")
     await state.set_state(TourState.question_mode)
     current_artwork_index = data.get('current_artwork_index', 0)
     artworks = data.get('artworks', [])
     
     artwork = artworks[current_artwork_index]
+    title = artwork.get('title', 0)
     await state.update_data(state='question_mode', last_shown_artwork_index=current_artwork_index)
     
     await query.answer()
     user_description = data.get('user_description', '')
-    await query.message.answer("Обрабатываю ваш вопрос... Подождите немного! ⏳")
+    await query.message.answer("Обрабатываю описание экспоната... Подождите немного! ⏳")
     
-    artwork_info = generate_artwork_info(artwork.get("text"), user_description)
-    validation_res = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
-    logging.debug(f'validation result:{validation_res}')
-    
+    artwork_info, generation_time_text = generate_artwork_info(artwork.get("text"), user_description)
+    logging.info(f"Generated artwork info: {artwork_info[:100]}...")
+    try:
+        validation_res = evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
+        logging.info(f'validation result:{validation_res}')
+    except Exception as e:
+            logging.error(f"Error while validation: {e}")
+
+
     if validation_res.lower() == "true":
-        artwork_info = generate_artwork_info_max(artwork.get("text"), user_description)
-        validation_res_max = evaluate_hallucinations_artworkinfo(artwork.get("text"), artwork_info)
+        artwork_info, generation_time_text = generate_artwork_info_max(artwork.get("text"), user_description)
+        validation_res_max = evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
         if validation_res_max.lower() == "true":
             artwork_info = artwork.get("text")
-    
+        
     clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
-    voice_artwork = await converter_text_to_voice(clean_artwork_info)
-    
+    voice_artwork, generation_time_audio = await converter_text_to_voice(clean_artwork_info)
+    voice_filename = voice_artwork.filename 
+
     send_images = data.get('send_images', False)
     image_urls = artwork.get("image")
-    print(f'image urls: {image_urls}')
 
     if send_images and image_urls:
         image_urls = [url.strip() for url in image_urls.split() if url.strip()]
-        logging.debug(f"Image URLs to send: {image_urls}")
+        logging.info(f"Image URLs to send: {image_urls}")
 
         await send_images_then_text_group(
             artwork_info,
@@ -195,7 +225,7 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
 
     if voice_artwork:
         await query.message.answer_voice(voice_artwork)
-
+    save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
     await state.update_data(current_artwork_index=current_artwork_index + 1)
 
     current_artwork_index_check = data.get('current_artwork_index', 0) + 1
@@ -215,36 +245,47 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
 @dp.message(TourState.question_mode)
 async def process_question(message: Message, state: FSMContext):
     data = await state.get_data()
+    session_id = data.get("session_id")
+    current_artwork_index = data.get("current_artwork_index", 0)
     if message.text == "Завершить экскурсию":
         await end_tour_handler(message, state)
         return  
     user_question = message.text
     artwork = data.get("artworks", [])[data.get("last_shown_artwork_index", 0)]
+    title = artwork.get('title', 0)
 
     await message.answer("Обрабатываю ваш вопрос... Подождите немного! ⏳")
-    
-    answer = generate_answer(user_question, artwork, data.get("user_description"))
-    validation_res = evaluate_hallucinations(artwork.get("text"), answer, user_question)
-    logging.debug(f'validation result:{ validation_res}')
+    user_description = data.get("user_description")
+    answer, generation_time_text = generate_answer(user_question, artwork, user_description)
+    try:
+        validation_res = evaluate_hallucinations(session_id, artwork.get("text"), answer, user_question)
+        logging.info(f'validation result:{ validation_res}')
+    except Exception as e:
+            logging.error(f"Error while validation: {e}")
     
     if validation_res.lower() == "false":
         clean_answer = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer)
-        voice_answer = await converter_text_to_voice(clean_answer)
+        voice_answer, generation_time_audio = await converter_text_to_voice(clean_answer)
+        voice_filename = voice_answer.filename 
         await message.answer(answer, parse_mode=ParseMode.MARKDOWN)
         if voice_answer:
             await message.answer_voice(voice_answer)
+        save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
     else:
-        answer_max = generate_answer_max(user_question, artwork, data.get("user_description"))
-        secondary_validation_res = evaluate_hallucinations(artwork.get("text"), answer_max, user_question)
+        answer_max, generation_time_text = generate_answer_max(user_question, artwork, user_description)
+        secondary_validation_res = evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
         if secondary_validation_res.lower() == "false":
             await message.answer(answer_max)
             clean_answer_max = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer_max)
-            voice_answer_max = await converter_text_to_voice(clean_answer_max)
+            voice_answer_max, generation_time_audio = await converter_text_to_voice(clean_answer_max)
+            voice_filename_max = voice_answer_max.filename 
             await message.answer_voice(voice_answer_max)
+            save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer_max, voice_filename_max, generation_time_text, generation_time_audio)
         else:
-            await message.answer("К сожалению, я затрудняюсь ответить. Пожалуйста, переформулируйте ваш вопрос.")
-    
-    current_artwork_index = data.get("current_artwork_index", 0)
+            answer = "К сожалению, я затрудняюсь ответить. Пожалуйста, переформулируйте ваш вопрос."
+            await message.answer(answer)
+            save_generated_answer_to_database(session_id, user_question, user_description, title, answer, None, None, None)
+
     if current_artwork_index < len(data.get("artworks")):
         keyboard = create_keyboard([("Следующий экспонат", "next_artwork")])
         await message.answer("Задайте вопрос о текущем экспонате или нажмите ниже, чтобы перейти к следующему.", reply_markup=keyboard)
@@ -256,20 +297,31 @@ async def process_question(message: Message, state: FSMContext):
 @dp.callback_query(F.data == "end_tour")
 async def end_tour_handler(message_or_query, state: FSMContext):
     if isinstance(message_or_query, Message):
+        data = await state.get_data()
+        user_description = data.get("user_description", "")
+        session_id = data.get("session_id")
         message = message_or_query
-        goodbye_text = generate_goodbye_word(exhibition_description, (await state.get_data()).get("user_description", ""))
-        await message.answer(goodbye_text + f"\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).", parse_mode=ParseMode.MARKDOWN)
+        goodbye_text, generation_time = generate_goodbye_word(exhibition_description, user_description)
+        save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
+        await message.answer(
+            goodbye_text + "\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).",
+            parse_mode=ParseMode.MARKDOWN
+        )
     else:
+        data = await state.get_data()
+        user_description = data.get("user_description", "")
+        session_id = data.get("session_id")
         query = message_or_query
         await query.answer()
-        goodbye_text = generate_goodbye_word(exhibition_description, (await state.get_data()).get("user_description", ""))
+        goodbye_text, generation_time = generate_goodbye_word(exhibition_description, user_description)
+        save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
         await query.message.answer(goodbye_text + f"\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).", parse_mode=ParseMode.MARKDOWN)
 
     feedback_form = (
         "Спасибо за участие в тестировании Музейного ИИ-гида!\n"
         "Твоя обратная связь **очень важна** для развития проекта.\n\n"
         "Мы подготовили небольшую форму с основными вопросами. Там ты сможешь рассказать, что понравилось, что можно улучшить и сообщить о проблемах, если что-то пошло не так.\n\n"
-        "📝 [Оценить экскурсию и поделиться мнением](https://forms.gle/your-google-form-link)\n\n"
+        "📝 [Оценить экскурсию и поделиться мнением](https://docs.google.com/forms/d/e/1FAIpQLSfBvOxkqVCbAktduDqEtY82-BJcQw8g4H18GTz_gurAKT-74A/viewform)\n\n"
         "До новых встреч в мире искусства! 🎨"
     )
 
@@ -282,7 +334,7 @@ async def end_tour_handler(message_or_query, state: FSMContext):
 
 # Comment out the function below if it causes bugs
 @dp.error()
-async def error_handler(update, exception):
+async def error_handler(update, exception: Exception = None):
     if isinstance(exception, TelegramNetworkError):
         logging.error(f"Network error while processing update: {exception}")
 

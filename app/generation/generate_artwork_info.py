@@ -1,6 +1,7 @@
 import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
+import time
 from process_data.load_data import clean_text
 from dotenv import load_dotenv
 
@@ -50,14 +51,15 @@ llm_chain_max = prompt_info | giga_max
 
 
 def generate_artwork_info(artwork, user_description):
+    start_time_text = time.time()
     response =  llm_chain.invoke({ "artwork": artwork, "user_description": user_description})
     response_text = response.content
-    print(f'**Generation of the artwork_info with all parametrs: {response}')
+    print(f'**Generation of the artwork_info with all parametrs.')
 
     if len(response_text) < 450:
         print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
         response =  llm_chain.invoke({ "artwork": artwork, "user_description": None})
-        print(f'**Generation of the artwork info without user_description: {response}')
+        print(f'**Generation of the artwork info without user_description.')
 
     response_text_new = response.content
     if len(response_text_new) < 450:
@@ -65,21 +67,25 @@ def generate_artwork_info(artwork, user_description):
         response =  clean_text(artwork)
         print(f'**Responce is the original artwork info')
 
+    end_time_text = time.time()
+    generation_time_text = float(end_time_text - start_time_text)
+
     if hasattr(response, 'content'):
-        return response.content
+        return response.content, generation_time_text
     else:
-        return str(response)
+        return str(response), generation_time_text
 
 
 def generate_artwork_info_max(artwork, user_description):
+    start_time_text = time.time()
     response =  llm_chain_max.invoke({ "artwork": artwork, "user_description": user_description})
     response_text = response.content
-    print(f'**Generation of the artwork_info with all parametrs: {response}')
+    print(f'**Generation of the artwork_info with all parametrs.')
 
     if len(response_text) < 450:
         print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
         response =  llm_chain.invoke({ "artwork": artwork, "user_description": None})
-        print(f'**Generation of the artwork info without user_description: {response}')
+        print(f'**Generation of the artwork info without user_description.')
 
     response_text_new = response.content
     if len(response_text_new) < 450:
@@ -87,8 +93,7 @@ def generate_artwork_info_max(artwork, user_description):
         response =  clean_text(artwork)
         print(f'**Responce is the original artwork info')
 
+    end_time_text = time.time()
+    generation_time_text = float(end_time_text - start_time_text)
 
-    if hasattr(response, 'content'):
-        return response.content
-    else:
-        return str(response)
+    return response.content if hasattr(response, 'content') else str(response), generation_time_text
