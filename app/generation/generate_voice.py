@@ -82,11 +82,14 @@ async def converter_text_to_voice(text: str) -> BufferedInputFile:
     start_time_audio = time.time()
     bytes_file = BytesIO()
     accented_text = await accentize_text(text)
+    print(f'Текст с ударениями: {accented_text}')
+    print(f'Cоздается аудио')
     audio = gTTS(text=accented_text, lang="ru")
     audio.write_to_fp(bytes_file)
     bytes_file.seek(0)
+    print(f'Cоздалось аудио')
     end_time_audio = time.time() 
     generation_time_audio = float(end_time_audio - start_time_audio)
-    print(f'Текст с ударениями: {accented_text}')
+    
     
     return BufferedInputFile(file=bytes_file.read(), filename="voice.ogg"), generation_time_audio

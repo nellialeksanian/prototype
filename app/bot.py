@@ -146,7 +146,7 @@ async def generate_route_response(message: Message, state: FSMContext):
         user_description = data.get('user_description', '')
         top_k = data.get("top_k", 5)
         logging.info(f"top_k: {top_k}")
-        route, artworks, generation_time_text, output_image_path = route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
+        route, artworks, generation_time_text, output_image_path = await route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
         await state.update_data(artworks=artworks)
 
         clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)
@@ -192,18 +192,18 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
     user_description = data.get('user_description', '')
     await query.message.answer("Обрабатываю описание экспоната... Подождите немного! ⏳")
     
-    artwork_info, generation_time_text = generate_artwork_info(artwork.get("text"), user_description)
+    artwork_info, generation_time_text = await generate_artwork_info(artwork.get("text"), user_description)
     logging.info(f"Generated artwork info: {artwork_info[:100]}...")
     try:
-        validation_res = evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
+        validation_res = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
         logging.info(f'validation result:{validation_res}')
     except Exception as e:
             logging.error(f"Error while validation: {e}")
 
 
     if validation_res.lower() == "true":
-        artwork_info, generation_time_text = generate_artwork_info_max(artwork.get("text"), user_description)
-        validation_res_max = evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
+        artwork_info, generation_time_text = await generate_artwork_info_max(artwork.get("text"), user_description)
+        validation_res_max = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
         if validation_res_max.lower() == "true":
             artwork_info = artwork.get("text")
         
@@ -261,9 +261,9 @@ async def process_question(message: Message, state: FSMContext):
 
     await message.answer("Обрабатываю ваш вопрос... Подождите немного! ⏳")
     user_description = data.get("user_description")
-    answer, generation_time_text = generate_answer(user_question, artwork, user_description)
+    answer, generation_time_text = await generate_answer(user_question, artwork, user_description)
     try:
-        validation_res = evaluate_hallucinations(session_id, artwork.get("text"), answer, user_question)
+        validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer, user_question)
         logging.info(f'validation result:{ validation_res}')
     except Exception as e:
             logging.error(f"Error while validation: {e}")
@@ -277,8 +277,8 @@ async def process_question(message: Message, state: FSMContext):
             await message.answer_voice(voice_answer)
         save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
     else:
-        answer_max, generation_time_text = generate_answer_max(user_question, artwork, user_description)
-        secondary_validation_res = evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
+        answer_max, generation_time_text = await generate_answer_max(user_question, artwork, user_description)
+        secondary_validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
         if secondary_validation_res.lower() == "false":
             await message.answer(answer_max)
             clean_answer_max = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer_max)
@@ -306,7 +306,7 @@ async def end_tour_handler(message_or_query, state: FSMContext):
         user_description = data.get("user_description", "")
         session_id = data.get("session_id")
         message = message_or_query
-        goodbye_text, generation_time = generate_goodbye_word(exhibition_description, user_description)
+        goodbye_text, generation_time = await generate_goodbye_word(exhibition_description, user_description)
         save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
         await message.answer(
             goodbye_text + "\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).",
@@ -318,7 +318,7 @@ async def end_tour_handler(message_or_query, state: FSMContext):
         session_id = data.get("session_id")
         query = message_or_query
         await query.answer()
-        goodbye_text, generation_time = generate_goodbye_word(exhibition_description, user_description)
+        goodbye_text, generation_time = await generate_goodbye_word(exhibition_description, user_description)
         save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
         await query.message.answer(goodbye_text + f"\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).", parse_mode=ParseMode.MARKDOWN)
 

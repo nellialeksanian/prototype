@@ -43,10 +43,10 @@ prompt_info = PromptTemplate.from_template(template_info)
 
 llm_chain = prompt_info | giga
 
-def generate_goodbye_word(exhibition_description, user_description):
+async def generate_goodbye_word(exhibition_description, user_description):
     start_time_text = time.time()
     parsed_unpack = open(exhibition_description, encoding="utf-8").read()
-    response =  llm_chain.invoke({"info": parsed_unpack, "user_description": user_description})
+    response =  await llm_chain.ainvoke({"info": parsed_unpack, "user_description": user_description})
     end_time_text = time.time()
     generation_time_text = float(end_time_text - start_time_text)
     return response.content if hasattr(response, 'content') else str(response), generation_time_text

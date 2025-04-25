@@ -55,8 +55,8 @@ prompt = PromptTemplate(
 llm_chain = prompt | giga
 
 
-def evaluate_hallucinations(session_id, context, answer, question):
-    result = llm_chain.invoke({"context": context, "answer": answer, "question": question})
+async def evaluate_hallucinations(session_id, context, answer, question):
+    result = await llm_chain.ainvoke({"context": context, "answer": answer, "question": question})
     print(f'**tokens used for validation: {result}')
     result = result.content if hasattr(result, 'content') else str(result)
     save_to_database(session_id, context, question, answer, result)

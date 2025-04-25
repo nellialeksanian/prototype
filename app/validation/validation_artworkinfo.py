@@ -43,8 +43,8 @@ prompt = PromptTemplate(
 
 llm_chain = prompt | giga
 
-def evaluate_hallucinations_artworkinfo(session_id, context, answer):
-    result = llm_chain.invoke({"context": context, "description": answer})
+async def evaluate_hallucinations_artworkinfo(session_id, context, answer):
+    result = await llm_chain.ainvoke({"context": context, "description": answer})
     question = "Опиши картину"
     print(f'**tokens used for validation: {result}')
     result = result.content if hasattr(result, 'content') else str(result)

@@ -53,9 +53,9 @@ prompt_info = PromptTemplate.from_template(template_info)
 llm_chain = prompt_info | giga
 llm_chain_max = prompt_info | giga_max
 
-def generate_answer(user_question, artwork, user_description):
+async def generate_answer(user_question, artwork, user_description):
     start_time_text = time.time()
-    response =  llm_chain.invoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
+    response =  await llm_chain.ainvoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
     response_text = response.content
     if len(response_text) < 350:
         response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})
@@ -66,9 +66,9 @@ def generate_answer(user_question, artwork, user_description):
     else:
         return str(response), generation_time_text
     
-def generate_answer_max(user_question, artwork, user_description):
+async def generate_answer_max(user_question, artwork, user_description):
     start_time_text = time.time()
-    response =  llm_chain_max.invoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
+    response =  await llm_chain_max.ainvoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
     response_text = response.content
     if len(response_text) < 350:
         response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})

@@ -16,7 +16,7 @@ from process_data.load_data import clean_text
 load_dotenv()
 
 class MuseumRouteBuilder:
-    def __init__(self, gigachat_token, graph_file="data/Slovcova/graph_with_titles.json"):
+    def __init__(self, gigachat_token, graph_file):
         self.giga = GigaChat(credentials=gigachat_token,
                              model='GigaChat-2',
                              scope="GIGACHAT_API_CORP",
@@ -82,7 +82,7 @@ class MuseumRouteBuilder:
 
     def load_graph(self):
         """Загрузка графа из JSON-файла."""
-        with open(self.graph_file, "r") as f:
+        with open(self.graph_file, "r", encoding="utf-8") as f:
             graph_data = json.load(f)
 
         G = nx.Graph()
@@ -300,7 +300,7 @@ class MuseumRouteBuilder:
         return user_content   
 
     
-    def generate_route(self, k, user_description, user_query):
+    async def generate_route(self, k, user_description, user_query):
         """Генерация маршрута с помощью GigaChat."""
         start_time_text = time.time()
         scores, retrieved_documents = search(user_query, k)
@@ -309,7 +309,7 @@ class MuseumRouteBuilder:
         formatted_artworks = self.format_prompt(ordered_artworks, k, user_query)
 
         chain = self.prompt_template | self.giga
-        response = chain.invoke({
+        response = await chain.ainvoke({
             "sys_prompt": self.SYS_PROMPT,
             "formatted_artworks": formatted_artworks,
             "user_description": user_description
@@ -319,7 +319,7 @@ class MuseumRouteBuilder:
             print("The BLACKLIST problem. Regeneration with the formatted descriptions.")
             formatted_prompt = self.format_prompt(ordered_artworks, k, user_query, description_field='short_description')
 
-            response = chain.invoke({
+            response = await chain.ainvoke({
                 "sys_prompt": self.SYS_PROMPT,
                 "formatted_artworks": formatted_prompt,
                 "user_description": user_description
