@@ -1,13 +1,10 @@
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
 import os
-from dotenv import load_dotenv
-
+import settings.settings
 from sql.create_tables import save_to_database
 
-load_dotenv() 
-
-gigachat_token = os.getenv("GIGACHAT_TOKEN")
+gigachat_token = settings.settings.GIGACHAT_TOKEN
 
 giga = GigaChat (
     credentials=gigachat_token,

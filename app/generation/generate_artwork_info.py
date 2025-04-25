@@ -3,11 +3,9 @@ from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
 import time
 from process_data.load_data import clean_text
-from dotenv import load_dotenv
+import settings.settings
 
-load_dotenv()
-
-gigachat_token = os.getenv("GIGACHAT_TOKEN")
+gigachat_token = settings.settings.GIGACHAT_TOKEN
 
 template_info = """You are a skilled museum guide specializing in personalized artwork descriptions. Make your explanations  appropriate for the user’s interests from their USER DESCRIPTION, making the information as captivating as possible.
 

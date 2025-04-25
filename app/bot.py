@@ -8,11 +8,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from dotenv import load_dotenv
 import random
 import re
 import logging
 
+import settings.settings
 from sql.create_tables import init_db_pool, close_db_pool, save_session_info_to_database, save_generated_answer_to_database, save_generated_artwork_info_to_database, save_generated_goodbye_to_database, save_generated_route_to_database
 from generation.generate_voice import converter_text_to_voice
 from generation.generation_route import route_builder
@@ -31,10 +31,8 @@ logging.basicConfig(
     ]
 )
 
-load_dotenv()
-
 pool = None
-TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = settings.settings.TELEGRAM_TOKEN
 
 class TourState(StatesGroup):
     awaiting_description = State()

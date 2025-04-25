@@ -1,13 +1,11 @@
 import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-from dotenv import load_dotenv
 import time
+import settings.settings
 
-load_dotenv()
-
-gigachat_token = os.getenv("GIGACHAT_TOKEN")
-exhibition_description = os.getenv("EXHIBITION_DESCRIPTION")
+gigachat_token = settings.settings.GIGACHAT_TOKEN
+exhibition_description = settings.settings.EXHIBITION_DESCRIPTION
 
 
 template_info = """I want you to interact with the user based on their USER DESCRIPTION.  

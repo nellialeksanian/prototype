@@ -1,12 +1,10 @@
 import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-from dotenv import load_dotenv
 import time
+import settings.settings
 
-load_dotenv()
-
-gigachat_token = os.getenv("GIGACHAT_TOKEN")
+gigachat_token = settings.settings.GIGACHAT_TOKEN
 
 template_info = """You must communicate with the user based on their USER DESCRIPTION.  
 Your task is to provide the most accurate and engaging response to the user's QUESTION, based on their interests to make the answer as captivating as possible.  

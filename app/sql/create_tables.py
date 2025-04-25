@@ -1,9 +1,8 @@
 import os
 import asyncpg
-from dotenv import load_dotenv
+import settings.settings
 
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = settings.settings.DATABASE_URL
 
 async def init_db_pool():
     global pool

@@ -8,12 +8,10 @@ import json
 import matplotlib.pyplot as plt
 import cv2
 import uuid
-from dotenv import load_dotenv
 
 from embeddings.embeddings_similarity import search
 from process_data.load_data import clean_text
-
-load_dotenv()
+import settings.settings
 
 class MuseumRouteBuilder:
     def __init__(self, gigachat_token, graph_file):
@@ -343,7 +341,7 @@ class MuseumRouteBuilder:
 
         return response.content if hasattr(response, 'content') else str(response), artworks, generation_time_text, output_image_path
     
-gigachat_token = os.getenv("GIGACHAT_TOKEN")
-graph_file = os.getenv('GRAPH_FILE')
+gigachat_token = settings.settings.GIGACHAT_TOKEN
+graph_file = settings.settings.GRAPH_FILE
 
 route_builder = MuseumRouteBuilder(gigachat_token, graph_file)
