@@ -53,6 +53,7 @@ accented_names = {
     'шилина': 'ш+илина',
     'александра': 'алекс+андра',
     'жернакова': 'жернак+ова',
+    'жернова': 'жерн+ова',
     'вадим': 'вад+им',
     'рейман': 'р+ейман',
     'елена': 'ел+ена',
@@ -61,7 +62,7 @@ accented_names = {
 }
 
 accentizer = RUAccent()
-accentizer.load(omograph_model_size='turbo3.1', use_dictionary=True, custom_dict=accented_names, tiny_mode=False)
+accentizer.load(omograph_model_size='tiny2', use_dictionary=True, custom_dict=accented_names, tiny_mode=False)
 
 async def replace_plus_with_accent(text):
     def repl(match):
