@@ -3,7 +3,9 @@ from gtts import gTTS
 from aiogram.types import BufferedInputFile
 from ruaccent import RUAccent
 import re
+import logging
 import time
+logger = logging.getLogger(__name__)
 accented_names = {
     'юлия': '+юлия',
     'миллер': 'м+иллер',
@@ -82,14 +84,16 @@ async def converter_text_to_voice(text: str) -> BufferedInputFile:
     start_time_audio = time.time()
     bytes_file = BytesIO()
     accented_text = await accentize_text(text)
-    print(f'Текст с ударениями: {accented_text}')
-    print(f'Cоздается аудио')
-    audio = gTTS(text=accented_text, lang="ru")
-    audio.write_to_fp(bytes_file)
-    bytes_file.seek(0)
-    print(f'Cоздалось аудио')
+    logging.info(f'Текст с ударениями: {accented_text}')
+    try:
+        logging.info('HTTP Request: POST https://translate.google.com/_/TranslateWebserverUi/data/batchexecute')
+        audio = gTTS(text=accented_text, lang="ru")
+        audio.write_to_fp(bytes_file)
+        bytes_file.seek(0)
+        logging.info(f"Audio generated")
+    except Exception as e:
+        logging.error(f"Error while generating audio from text: {e}")
     end_time_audio = time.time() 
     generation_time_audio = float(end_time_audio - start_time_audio)
-    
     
     return BufferedInputFile(file=bytes_file.read(), filename="voice.ogg"), generation_time_audio

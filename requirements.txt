@@ -13,7 +13,7 @@ pandas
 torch
 transformers
 gTTS
-psycopg2-binary
+asyncpg 
 ruaccent
 matplotlib
 opencv-python

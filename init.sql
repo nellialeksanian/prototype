@@ -1,6 +1,6 @@
 CREATE TABLE user_sessions (
     session_id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    user_id INT NOT NULL,
     username TEXT NOT NULL,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -22,7 +22,7 @@ CREATE TABLE generated_routes (
     user_description TEXT,
     user_query TEXT,
     k INT NOT NULL,
-    artworks TEXT NOT NULL,
+    artworks TEXT[] NOT NULL,
     generated_text TEXT NOT NULL,
     generation_time_text_sec INT NOT NULL,
     generation_time_audio_sec INT,

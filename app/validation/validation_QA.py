@@ -59,5 +59,5 @@ async def evaluate_hallucinations(session_id, context, answer, question):
     result = await llm_chain.ainvoke({"context": context, "answer": answer, "question": question})
     print(f'**tokens used for validation: {result}')
     result = result.content if hasattr(result, 'content') else str(result)
-    save_to_database(session_id, context, question, answer, result)
+    await save_to_database(session_id, context, question, answer, result)
     return result

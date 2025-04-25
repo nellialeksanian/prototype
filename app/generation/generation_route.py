@@ -17,11 +17,13 @@ load_dotenv()
 
 class MuseumRouteBuilder:
     def __init__(self, gigachat_token, graph_file):
+        self.graph_file = graph_file
+        with open(self.graph_file, "r", encoding="utf-8") as f:
+            self.graph_data = json.load(f)
         self.giga = GigaChat(credentials=gigachat_token,
                              model='GigaChat-2',
                              scope="GIGACHAT_API_CORP",
                              verify_ssl_certs=False)
-        self.graph_file = graph_file
         self.SYS_PROMPT = """
         You are a museum guide who creates personalized tours for visitors of art exhibitions based on their interests and preferences.
 
@@ -82,13 +84,10 @@ class MuseumRouteBuilder:
 
     def load_graph(self):
         """Загрузка графа из JSON-файла."""
-        with open(self.graph_file, "r", encoding="utf-8") as f:
-            graph_data = json.load(f)
-
         G = nx.Graph()
-        for node in graph_data["nodes"]:
+        for node in self.graph_data["nodes"]:
             G.add_node(node["id"], title=node["title"], x=node["x"], y=node["y"])
-        for edge in graph_data["edges"]:
+        for edge in self.graph_data["edges"]:
             G.add_edge(edge["from"], edge["to"], weight=edge["distance"])
 
         return G
@@ -184,16 +183,13 @@ class MuseumRouteBuilder:
     
     def draw_colored_route(self, full_real_path, improved_route, background_image_path):
         """Визуализирует маршрут и возвращает изображение в BytesIO для Telegram."""
-        with open(self.graph_file, "r", encoding="utf-8") as f:
-            graph_data = json.load(f)
-
         image = cv2.imread(background_image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         G = nx.Graph()
-        for node in graph_data["nodes"]:
+        for node in self.graph_data["nodes"]:
             G.add_node(node["id"], pos=(node["x"], node["y"]))
-        for edge in graph_data["edges"]:
+        for edge in self.graph_data["edges"]:
             G.add_edge(edge["from"], edge["to"])
 
         pos = nx.get_node_attributes(G, "pos")

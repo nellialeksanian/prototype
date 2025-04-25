@@ -13,7 +13,7 @@ import random
 import re
 import logging
 
-from sql.create_tables import save_sessin_info_to_database, save_generated_answer_to_database, save_generated_artwork_info_to_database, save_generated_goodbye_to_database, save_generated_route_to_database
+from sql.create_tables import init_db_pool, close_db_pool, save_session_info_to_database, save_generated_answer_to_database, save_generated_artwork_info_to_database, save_generated_goodbye_to_database, save_generated_route_to_database
 from generation.generate_voice import converter_text_to_voice
 from generation.generation_route import route_builder
 from generation.generate_artwork_info import generate_artwork_info, generate_artwork_info_max
@@ -32,6 +32,8 @@ logging.basicConfig(
 )
 
 load_dotenv()
+
+pool = None
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 class TourState(StatesGroup):
@@ -56,7 +58,7 @@ async def start(message: Message, state: FSMContext):
     user_id = message.from_user.id
     username = message.from_user.username
     session_id = str(uuid.uuid4())
-    save_sessin_info_to_database(session_id, user_id, username)
+    await save_session_info_to_database(session_id, user_id, username)
     await state.set_state(TourState.awaiting_description)
     await state.update_data(state='route_mode', current_artwork_index=0,
         session_id=session_id, user_id=user_id)
@@ -151,8 +153,11 @@ async def generate_route_response(message: Message, state: FSMContext):
 
         clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)
         clean_route = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,:"«»]', '', route)
-        voice_route, generation_time_audio = await converter_text_to_voice(clean_route_for_gen)
-        voice_filename = voice_route.filename 
+        try:
+            voice_route, generation_time_audio = await converter_text_to_voice(clean_route_for_gen)
+            voice_filename = voice_route.filename 
+        except Exception as e:
+            logging.error(f"Cannot send audio: {e}")
 
         await send_text_in_chunks(clean_route, lambda text: message.answer(text, parse_mode=ParseMode.MARKDOWN))
         if voice_route:
@@ -167,7 +172,7 @@ async def generate_route_response(message: Message, state: FSMContext):
         titles = []
         for artwork in artworks:
             titles.append(artwork.get('title'))
-        save_generated_route_to_database(session_id, user_description, user_query, top_k, titles, clean_route, voice_filename, generation_time_text, generation_time_audio)
+        await save_generated_route_to_database(session_id, user_description, user_query, top_k, titles, clean_route, voice_filename, generation_time_text, generation_time_audio)
         await message.answer("Вы готовы начать экскурсию?", reply_markup=create_keyboard([("Да, я готов(а)", "next_artwork")]))
 
     except Exception as e:
@@ -208,8 +213,11 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
             artwork_info = artwork.get("text")
         
     clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
-    voice_artwork, generation_time_audio = await converter_text_to_voice(clean_artwork_info)
-    voice_filename = voice_artwork.filename 
+    try:
+        voice_artwork, generation_time_audio = await converter_text_to_voice(clean_artwork_info)
+        voice_filename = voice_artwork.filename 
+    except Exception as e:
+        logging.error(f"Cannot send audio: {e}")
 
     send_images = data.get('send_images', False)
     image_urls = artwork.get("image")
@@ -230,7 +238,7 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
 
     if voice_artwork:
         await query.message.answer_voice(voice_artwork)
-    save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
+    await save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
     await state.update_data(current_artwork_index=current_artwork_index + 1)
 
     current_artwork_index_check = data.get('current_artwork_index', 0) + 1
@@ -270,26 +278,33 @@ async def process_question(message: Message, state: FSMContext):
     
     if validation_res.lower() == "false":
         clean_answer = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer)
-        voice_answer, generation_time_audio = await converter_text_to_voice(clean_answer)
-        voice_filename = voice_answer.filename 
+        try:
+            voice_answer, generation_time_audio = await converter_text_to_voice(clean_answer)
+            voice_filename = voice_answer.filename 
+        except Exception as e:
+            logging.error(f"Cannot send audio: {e}")
         await message.answer(answer, parse_mode=ParseMode.MARKDOWN)
         if voice_answer:
             await message.answer_voice(voice_answer)
-        save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
+        await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
     else:
         answer_max, generation_time_text = await generate_answer_max(user_question, artwork, user_description)
         secondary_validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
         if secondary_validation_res.lower() == "false":
             await message.answer(answer_max)
             clean_answer_max = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer_max)
-            voice_answer_max, generation_time_audio = await converter_text_to_voice(clean_answer_max)
-            voice_filename_max = voice_answer_max.filename 
-            await message.answer_voice(voice_answer_max)
-            save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer_max, voice_filename_max, generation_time_text, generation_time_audio)
+            try:
+                voice_answer_max, generation_time_audio = await converter_text_to_voice(clean_answer_max)
+                voice_filename_max = voice_answer_max.filename 
+            except Exception as e:
+                logging.error(f"Cannot send audio: {e}")
+            if voice_answer_max:
+                await message.answer_voice(voice_answer_max)
+            await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer_max, voice_filename_max, generation_time_text, generation_time_audio)
         else:
             answer = "К сожалению, я затрудняюсь ответить. Пожалуйста, переформулируйте ваш вопрос."
             await message.answer(answer)
-            save_generated_answer_to_database(session_id, user_question, user_description, title, answer, None, None, None)
+            await save_generated_answer_to_database(session_id, user_question, user_description, title, answer, None, None, None)
 
     if current_artwork_index < len(data.get("artworks")):
         keyboard = create_keyboard([("Следующий экспонат", "next_artwork")])
@@ -307,7 +322,7 @@ async def end_tour_handler(message_or_query, state: FSMContext):
         session_id = data.get("session_id")
         message = message_or_query
         goodbye_text, generation_time = await generate_goodbye_word(exhibition_description, user_description)
-        save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
+        await save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
         await message.answer(
             goodbye_text + "\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).",
             parse_mode=ParseMode.MARKDOWN
@@ -319,7 +334,7 @@ async def end_tour_handler(message_or_query, state: FSMContext):
         query = message_or_query
         await query.answer()
         goodbye_text, generation_time = await generate_goodbye_word(exhibition_description, user_description)
-        save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
+        await save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
         await query.message.answer(goodbye_text + f"\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).", parse_mode=ParseMode.MARKDOWN)
 
     feedback_form = (
@@ -356,7 +371,8 @@ async def error_handler(update, exception: Exception = None):
     return False
 
 async def main():
-    await dp.start_polling(bot)
+    await init_db_pool()
+    await dp.start_polling(bot, on_shutdown=close_db_pool)
 
 if __name__ == '__main__':
     asyncio.run(main())
