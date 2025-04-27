@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 from gtts import gTTS
 from aiogram.types import BufferedInputFile
@@ -80,7 +81,7 @@ async def accentize_text(text: str):
     converted = await replace_plus_with_accent(accented_text)
     return converted
 
-async def converter_text_to_voice(text: str) -> BufferedInputFile:
+async def converter_text_to_voice_old(text: str) -> BufferedInputFile:
     start_time_audio = time.time()
     bytes_file = BytesIO()
     accented_text = await accentize_text(text)
@@ -97,3 +98,30 @@ async def converter_text_to_voice(text: str) -> BufferedInputFile:
     generation_time_audio = float(end_time_audio - start_time_audio)
     
     return BufferedInputFile(file=bytes_file.read(), filename="voice.ogg"), generation_time_audio
+
+def generate_audio_blocking(accented_text: str, bytes_file: BytesIO) -> BufferedInputFile:
+    audio = gTTS(text=accented_text, lang="ru")
+    audio.write_to_fp(bytes_file)
+    bytes_file.seek(0)
+
+
+async def converter_text_to_voice(text: str) -> BufferedInputFile:
+    start_time_audio = time.time()
+    bytes_file = BytesIO()
+    accented_text = await accentize_text(text)  # still async part
+    logging.info(f'Текст с ударениями: {accented_text}') 
+
+    try: 
+        # Use asyncio.to_thread to run the blocking function
+        logging.info('HTTP Request: POST https://translate.google.com/_/TranslateWebserverUi/data/batchexecute')
+        await asyncio.to_thread(generate_audio_blocking, accented_text, bytes_file)
+        logging.info(f"Audio generated")
+        audio_file = BufferedInputFile(file=bytes_file.read(), filename="voice.ogg")
+    except Exception as e:
+        logging.error(f"Error during audio generation asyncio.to_thread: {e}")
+        audio_file = None
+    
+    end_time_audio = time.time()
+    generation_time_audio = float(end_time_audio - start_time_audio)
+
+    return audio_file, generation_time_audio

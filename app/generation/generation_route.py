@@ -40,6 +40,7 @@ class MuseumRouteBuilder:
 
         !!! IMPORTANT !!!
             - Each artwork must begin with a number (1., 2., 3.)
+            - Start each artwork with giving the name of the artwork and then the name of the artist
             - Each artwork must be separated by a new line
             - AVOID merging multiple artworks into one paragraph
 
@@ -282,8 +283,14 @@ class MuseumRouteBuilder:
 
         return improved_route, ordered_artworks, output_image_path
     
-    def format_prompt(self, ordered_artworks, k, user_query=None, description_field='text'):
+    def format_prompt(self, ordered_artworks, k, user_query=None, description_field = "text"):
         """Форматирование запроса для модели."""
+
+        if k < 10:
+            description_field = "text"
+        else:
+            description_field = "short_description"
+
         user_content = f"Экспонаты для маршрута:\n"
         
         if user_query:
@@ -324,12 +331,20 @@ class MuseumRouteBuilder:
             user_content = f"Список экспонатов:\n"
             for i in range(k):
                 user_content += f"{i + 1}. {clean_text(ordered_artworks[i]['short_description'])}\n\n"
+            
             response = user_content
 
         end_time_text = time.time()
         generation_time_text = float(end_time_text - start_time_text)
 
-        description_field = 'short_description' if len(response.content) < 350 else 'text'
+        if hasattr(response, 'content'):
+            if len(response.content) < 350:
+                description_field = 'short_description'
+            else: description_field = 'text'
+        else:
+            description_field = 'short_description'
+
+        #description_field = 'short_description' if len(response.content) < 350 else 'text'
         artworks = [
             {
                 "title": ordered_artwork.get('title', ''),

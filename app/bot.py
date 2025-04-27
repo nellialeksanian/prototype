@@ -141,6 +141,8 @@ async def generate_route_response(message: Message, state: FSMContext):
         await end_tour_handler(message, state)
         return  
     await message.answer("Подождите немного, я готовлю ваш маршрут... ⏳")
+    await asyncio.sleep(0)
+
     try:
         user_query = message.text
         user_description = data.get('user_description', '')
@@ -151,15 +153,19 @@ async def generate_route_response(message: Message, state: FSMContext):
 
         clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)
         clean_route = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,:"«»]', '', route)
+
         try:
             voice_route, generation_time_audio = await converter_text_to_voice(clean_route_for_gen)
-            voice_filename = voice_route.filename 
+            voice_filename = voice_route.filename if voice_route else None
         except Exception as e:
             logging.error(f"Cannot send audio: {e}")
 
         await send_text_in_chunks(clean_route, lambda text: message.answer(text, parse_mode=ParseMode.MARKDOWN))
-        if voice_route:
+        
+        if voice_route:  # check both that object exists and file is not empty
             await message.answer_voice(voice_route)
+        else:
+            await message.answer("К сожалению, я не смог сгенерировать аудиоформат")
 
         try:
             photo = FSInputFile(output_image_path) 
@@ -194,64 +200,81 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
     await query.answer()
     user_description = data.get('user_description', '')
     await query.message.answer("Обрабатываю описание экспоната... Подождите немного! ⏳")
+    await asyncio.sleep(0)
+
+    asyncio.create_task(process_artwork_info(query, state, data, artwork, user_description, session_id, title))
     
-    artwork_info, generation_time_text = await generate_artwork_info(artwork.get("text"), user_description)
-    logging.info(f"Generated artwork info: {artwork_info[:100]}...")
+async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, artwork, user_description, session_id, title):
     try:
-        validation_res = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
-        logging.info(f'validation result:{validation_res}')
-    except Exception as e:
+        artwork_info, generation_time_text = await generate_artwork_info(artwork.get("text"), user_description)
+        logging.info(f"Generated artwork info: {artwork_info[:100]}...")
+
+        try:
+            validation_res = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
+            logging.info(f'validation result:{validation_res}')
+        except Exception as e:
             logging.error(f"Error while validation: {e}")
-
-
-    if validation_res.lower() == "true":
-        artwork_info, generation_time_text = await generate_artwork_info_max(artwork.get("text"), user_description)
-        validation_res_max = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
-        if validation_res_max.lower() == "true":
-            artwork_info = artwork.get("text")
         
-    clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
-    try:
-        voice_artwork, generation_time_audio = await converter_text_to_voice(clean_artwork_info)
-        voice_filename = voice_artwork.filename 
+        
+        if validation_res.lower() == "true":
+            artwork_info, generation_time_text = await generate_artwork_info_max(artwork.get("text"), user_description)
+            validation_res_max = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
+            if validation_res_max.lower() == "true":
+                artwork_info = artwork.get("text")
+        
+        clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
+
+        try:
+            voice_artwork, generation_time_audio = await converter_text_to_voice(clean_artwork_info)
+            voice_filename = voice_artwork.filename if voice_artwork else None 
+        except Exception as e:
+            logging.error(f"Cannot send audio: {e}")
+        
+
+        send_images = data.get('send_images', False)
+        image_urls = artwork.get("image")
+
+        if send_images and image_urls:
+            image_urls = [url.strip() for url in image_urls.split() if url.strip()]
+            logging.info(f"Image URLs to send: {image_urls}")
+
+            await send_images_then_text_group(
+                artwork_info,
+                image_urls,
+                lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN),
+                bot,
+                query.message.chat.id
+            )
+        else:
+            await send_text_in_chunks(artwork_info, lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN))
+
+        if voice_artwork:
+            await query.message.answer_voice(voice_artwork)
+        else:
+            await query.message.answer("К сожалению, я не смог сгенерировать аудиоформат")
+
+
+        await save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
+        await state.update_data(current_artwork_index=data.get('current_artwork_index', 0) + 1)
+
+        # Check if more artworks exist
+        current_artwork_index_check = data.get('current_artwork_index', 0) + 1
+        artworks = data.get('artworks', [])
+        if current_artwork_index_check < len(artworks):
+            keyboard = create_keyboard([("Следующий экспонат", "next_artwork")])
+            await query.message.answer(
+                "Задайте вопрос о текущем экспонате или нажмите ниже, чтобы перейти к следующему.",
+                reply_markup=keyboard
+            )
+        else:
+            keyboard = create_keyboard([("Завершить маршрут", "end_tour")])
+            await query.message.answer(
+                "Задайте вопрос о текущем экспонате. Это последний экспонат нашего маршрута!",
+                reply_markup=keyboard
+            )
     except Exception as e:
-        logging.error(f"Cannot send audio: {e}")
+        logging.error(f"Error in process_artwork_info: {e}")
 
-    send_images = data.get('send_images', False)
-    image_urls = artwork.get("image")
-
-    if send_images and image_urls:
-        image_urls = [url.strip() for url in image_urls.split() if url.strip()]
-        logging.info(f"Image URLs to send: {image_urls}")
-
-        await send_images_then_text_group(
-            artwork_info,
-            image_urls,
-            lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN),
-            bot,
-            query.message.chat.id
-        )
-    else:
-        await send_text_in_chunks(artwork_info, lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN))
-
-    if voice_artwork:
-        await query.message.answer_voice(voice_artwork)
-    await save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
-    await state.update_data(current_artwork_index=current_artwork_index + 1)
-
-    current_artwork_index_check = data.get('current_artwork_index', 0) + 1
-    if current_artwork_index_check < len(artworks):
-        keyboard = create_keyboard([("Следующий экспонат", "next_artwork")])
-        await query.message.answer(
-            "Задайте вопрос о текущем экспонате или нажмите ниже, чтобы перейти к следующему.",
-            reply_markup=keyboard
-        )
-    else:
-        keyboard = create_keyboard([("Завершить маршрут", "end_tour")])
-        await query.message.answer(
-            "Задайте вопрос о текущем экспонате. Это последний экспонат нашего маршрута!",
-            reply_markup=keyboard
-        )
 
 @dp.message(TourState.question_mode)
 async def process_question(message: Message, state: FSMContext):
@@ -266,25 +289,35 @@ async def process_question(message: Message, state: FSMContext):
     title = artwork.get('title', 0)
 
     await message.answer("Обрабатываю ваш вопрос... Подождите немного! ⏳")
+    await asyncio.sleep(0)
+
+    asyncio.create_task(handle_question_background(message, state, data, session_id, user_question, artwork, title, current_artwork_index))
+
+async def handle_question_background(message: Message, state: FSMContext, data: dict, session_id: str, user_question: str, artwork: dict, title: str, current_artwork_index: int):
     user_description = data.get("user_description")
     answer, generation_time_text = await generate_answer(user_question, artwork, user_description)
     try:
         validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer, user_question)
         logging.info(f'validation result:{ validation_res}')
     except Exception as e:
-            logging.error(f"Error while validation: {e}")
+        logging.error(f"Error while validation: {e}")
     
     if validation_res.lower() == "false":
         clean_answer = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer)
+        
         try:
             voice_answer, generation_time_audio = await converter_text_to_voice(clean_answer)
-            voice_filename = voice_answer.filename 
+            voice_filename = voice_answer.filename if voice_answer else None 
         except Exception as e:
             logging.error(f"Cannot send audio: {e}")
+
         await message.answer(answer, parse_mode=ParseMode.MARKDOWN)
         if voice_answer:
             await message.answer_voice(voice_answer)
+        else:
+            await message.answer("К сожалению, я не смог сгенерировать аудиофрмат.")
         await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
+    
     else:
         answer_max, generation_time_text = await generate_answer_max(user_question, artwork, user_description)
         secondary_validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
@@ -293,16 +326,20 @@ async def process_question(message: Message, state: FSMContext):
             clean_answer_max = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer_max)
             try:
                 voice_answer_max, generation_time_audio = await converter_text_to_voice(clean_answer_max)
-                voice_filename_max = voice_answer_max.filename 
+                voice_filename_max = voice_answer_max.filename if voice_answer_max else None 
             except Exception as e:
                 logging.error(f"Cannot send audio: {e}")
+                
             if voice_answer_max:
                 await message.answer_voice(voice_answer_max)
+            else:
+                await message.answer("К сожалению, я не смог сгенерировать аудиофрмат.")
             await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer_max, voice_filename_max, generation_time_text, generation_time_audio)
         else:
             answer = "К сожалению, я затрудняюсь ответить. Пожалуйста, переформулируйте ваш вопрос."
             await message.answer(answer)
             await save_generated_answer_to_database(session_id, user_question, user_description, title, answer, None, None, None)
+
 
     if current_artwork_index < len(data.get("artworks")):
         keyboard = create_keyboard([("Следующий экспонат", "next_artwork")])
