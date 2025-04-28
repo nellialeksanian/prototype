@@ -53,7 +53,7 @@ def create_keyboard(buttons):
 @dp.message(F.text == "/start")
 @dp.message(F.text == "Старт")
 async def start(message: Message, state: FSMContext):
-    user_id = message.from_user.id
+    user_id = str(message.from_user.id)
     username = message.from_user.username
     session_id = str(uuid.uuid4())
     await save_session_info_to_database(session_id, user_id, username)

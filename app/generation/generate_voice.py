@@ -109,7 +109,7 @@ async def converter_text_to_voice(text: str) -> BufferedInputFile:
     start_time_audio = time.time()
     bytes_file = BytesIO()
     accented_text = await accentize_text(text)  # still async part
-    logging.info(f'Текст с ударениями: {accented_text}') 
+    logging.info(f'Текст с ударениями: {accented_text[:100]}') 
 
     try: 
         # Use asyncio.to_thread to run the blocking function
