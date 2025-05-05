@@ -210,7 +210,7 @@ class MuseumRouteBuilder:
                 ordered_artworks.append({
                     "title": title,
                     "name": retrieved_documents['name'][index] if index < len(retrieved_documents['name']) else "",
-                    "id": retrieved_documents['nodes'][index] if index < len(retrieved_documents['nodes']) else "",
+                    "id": node,
                     "text": retrieved_documents['text'][index] if index < len(retrieved_documents['text']) else "",
                     "short_description": retrieved_documents['short_description'][index] if index < len(retrieved_documents['short_description']) else "",
                     "image": retrieved_documents['image'][index] if index < len(retrieved_documents['image']) else ""
@@ -222,15 +222,15 @@ class MuseumRouteBuilder:
     
     async def generate_route(self, k, user_description, user_query):
         """Генерация маршрута с помощью GigaChat."""
-        start_time_text = time.time()
         scores, retrieved_documents = search(user_query, k)
+        print(retrieved_documents['nodes'])
         G = self.load_graph()
         route, ordered_artworks, output_image_path = self.build_route(G, retrieved_documents, k)
         lines = []
         for idx, artwork in enumerate(ordered_artworks, start=1):
             name = artwork.get("name", "Без названия")
             artwork_id = artwork.get("id", "нет id")
-            line = f"{idx}. {name}\n Экспонат на карте под номером {artwork_id}"
+            line = f"{idx}. {name}\n Экспонат на карте: {artwork_id}"
             lines.append(line)
 
         text = "\n\n".join(lines)

@@ -50,14 +50,14 @@ async def send_text_with_image(text, image_url, message_func, photo_func, max_ca
         await send_text_in_chunks("\n\n".join(remaining_text), message_func) 
         
 
-async def send_images_then_text_group(text, image_urls, message_func, bot, chat_id):
+async def send_images_then_text_group(name, text, image_urls, message_func, bot, chat_id):
     
     for i in range(0, len(image_urls), 10):
         media_group = []
         for url in image_urls[i:i + 10]:
             try:
                 file = URLInputFile(url)
-                media_group.append(InputMediaPhoto(media=file))
+                media_group.append(InputMediaPhoto(media=file, caption=name))
             except Exception as e:
                 print(f"Failed to attach photo from {url}: {e}")
 

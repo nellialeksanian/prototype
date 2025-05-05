@@ -23,10 +23,7 @@ CREATE TABLE generated_routes (
     user_query TEXT,
     k INT NOT NULL,
     artworks TEXT[] NOT NULL,
-    generated_text TEXT,
-    generation_time_text_sec INT NOT NULL,
-    generation_time_audio_sec INT,
-    voice_filename TEXT,
+    created_route TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES user_sessions(session_id) ON DELETE CASCADE
 );

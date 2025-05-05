@@ -148,24 +148,8 @@ async def generate_route_response(message: Message, state: FSMContext):
         user_description = data.get('user_description', '')
         top_k = data.get("top_k", 5)
         logging.info(f"top_k: {top_k}")
-        route, artworks, generation_time_text, output_image_path = await route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
-        await state.update_data(artworks=artworks)
-
-        clean_route_for_gen = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', route)
-        clean_route = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,:"«»]', '', route)
-
-        try:
-            voice_route, generation_time_audio = await converter_text_to_voice(clean_route_for_gen)
-            voice_filename = voice_route.filename if voice_route else None
-        except Exception as e:
-            logging.error(f"Cannot send audio: {e}")
-
-        await send_text_in_chunks(clean_route, lambda text: message.answer(text, parse_mode=ParseMode.MARKDOWN))
-        
-        if voice_route:  # check both that object exists and file is not empty
-            await message.answer_voice(voice_route)
-        else:
-            await message.answer("К сожалению, я не смог сгенерировать аудиоформат")
+        route, artworks, output_image_path = await route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
+        await message.answer(route)
 
         try:
             photo = FSInputFile(output_image_path) 
@@ -173,12 +157,10 @@ async def generate_route_response(message: Message, state: FSMContext):
         except Exception as e:
             logging.error(f"Error with sending photo: {e}")
 
-        titles = []
-        for artwork in artworks:
-            titles.append(artwork.get('title'))
-        await save_generated_route_to_database(session_id, user_description, user_query, top_k, titles, clean_route, voice_filename, generation_time_text, generation_time_audio)
+        titles = [artwork.get('title') for artwork in artworks]
+        await state.update_data(artworks=artworks) 
+        # await save_generated_route_to_database(session_id, user_description, user_query, top_k, titles)
         await message.answer("Вы готовы начать экскурсию?", reply_markup=create_keyboard([("Да, я готов(а)", "next_artwork")]))
-
     except Exception as e:
         logging.error(f"Route generation error: {e}")
         await message.answer("Возникла ошибка, возможно ваш запрос оказался слишком сложным для меня")
@@ -206,22 +188,23 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
     
 async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, artwork, user_description, session_id, title):
     try:
-        artwork_info, generation_time_text = await generate_artwork_info(artwork.get("text"), user_description)
+        artwork_info, generation_time_text = await generate_artwork_info(artwork, user_description)
         logging.info(f"Generated artwork info: {artwork_info[:100]}...")
 
         try:
             validation_res = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
             logging.info(f'validation result:{validation_res}')
         except Exception as e:
+            validation_res = 'No validation '
             logging.error(f"Error while validation: {e}")
         
-        
         if validation_res.lower() == "true":
-            artwork_info, generation_time_text = await generate_artwork_info_max(artwork.get("text"), user_description)
+            artwork_info, generation_time_text = await generate_artwork_info_max(artwork, user_description)
             validation_res_max = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
             if validation_res_max.lower() == "true":
                 artwork_info = artwork.get("text")
-        
+        else:
+            artwork_info = artwork_info
         clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
 
         try:
@@ -233,12 +216,15 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
 
         send_images = data.get('send_images', False)
         image_urls = artwork.get("image")
+        artwork_name = artwork.get("name")
+        artwork_caption = artwork_name + '\n\n Экспонат на карте: ' + artwork.get("id")
 
         if send_images and image_urls:
             image_urls = [url.strip() for url in image_urls.split() if url.strip()]
             logging.info(f"Image URLs to send: {image_urls}")
 
             await send_images_then_text_group(
+                artwork_caption,
                 artwork_info,
                 image_urls,
                 lambda text: query.message.answer(text, parse_mode=ParseMode.MARKDOWN),
@@ -254,7 +240,7 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
             await query.message.answer("К сожалению, я не смог сгенерировать аудиоформат")
 
 
-        await save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
+        # await save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
         await state.update_data(current_artwork_index=data.get('current_artwork_index', 0) + 1)
 
         # Check if more artworks exist
@@ -300,6 +286,7 @@ async def handle_question_background(message: Message, state: FSMContext, data: 
         validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer, user_question)
         logging.info(f'validation result:{ validation_res}')
     except Exception as e:
+        validation_res = 'No validation'
         logging.error(f"Error while validation: {e}")
     
     if validation_res.lower() == "false":
@@ -316,8 +303,7 @@ async def handle_question_background(message: Message, state: FSMContext, data: 
             await message.answer_voice(voice_answer)
         else:
             await message.answer("К сожалению, я не смог сгенерировать аудиофрмат.")
-        await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
-    
+        # await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
     else:
         answer_max, generation_time_text = await generate_answer_max(user_question, artwork, user_description)
         secondary_validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
@@ -406,8 +392,9 @@ async def error_handler(update, exception: Exception = None):
     return False
 
 async def main():
-    await init_db_pool()
-    await dp.start_polling(bot, on_shutdown=close_db_pool)
+    # await init_db_pool()
+    await dp.start_polling(bot)
+    # await dp.start_polling(bot, on_shutdown=close_db_pool)
 
 if __name__ == '__main__':
     asyncio.run(main())

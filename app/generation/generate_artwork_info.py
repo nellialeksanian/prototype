@@ -1,11 +1,13 @@
-import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
 import time
 from process_data.load_data import clean_text
 import settings.settings
+import base64
+import os
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
+gigachat_token_max = settings.settings.GIGACHAT_TOKEN_MAX
 
 template_info = """You are a skilled museum guide specializing in personalized artwork descriptions. Make your explanations  appropriate for the user’s interests from their USER DESCRIPTION, making the information as captivating as possible.
 
@@ -33,13 +35,13 @@ template_info = """You are a skilled museum guide specializing in personalized a
 
 giga = GigaChat(credentials=gigachat_token,
                 model='GigaChat', 
-                scope="GIGACHAT_API_CORP",
+                scope="GIGACHAT_API_PERS",
                 verify_ssl_certs=False)
 
-giga_max = GigaChat(credentials=gigachat_token,
+giga_max = GigaChat(credentials=gigachat_token_max,
                 model="GigaChat-Max", 
-                scope="GIGACHAT_API_CORP",
-                verify_ssl_certs=False)
+                scope="GIGACHAT_API_PERS",
+                verify_ssl_certs=False)  
 
 prompt_info = PromptTemplate.from_template(template_info)
 
@@ -49,16 +51,21 @@ llm_chain_max = prompt_info | giga_max
 
 async def generate_artwork_info(artwork, user_description):
     start_time_text = time.time()
-    response = await llm_chain.ainvoke({ "artwork": artwork, "user_description": user_description})
+    response = await llm_chain.ainvoke({ "artwork": artwork.get('text'), "user_description": user_description})
     response_text = response.content
     print(f'**Generation of the artwork_info with all parametrs.')
 
     if len(response_text) < 450:
         print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
-        response =  await llm_chain.ainvoke({ "artwork": artwork, "user_description": None})
+        response =  await llm_chain.ainvoke({ "artwork": artwork.get('text'), "user_description": None})
         print(f'**Generation of the artwork info without user_description.')
 
     response_text_new = response.content
+    if len(response_text_new) < 450:
+        print("The BLACKLIST problem. Regeneration with the short_description.")
+        response =  await llm_chain.ainvoke({ "artwork": artwork.get('short_description'), "user_description": None})
+        print(f'**Responce is the original artwork info')
+
     if len(response_text_new) < 450:
         print("The BLACKLIST problem. Send the origina artwork info.")
         response =  clean_text(artwork)
@@ -75,13 +82,13 @@ async def generate_artwork_info(artwork, user_description):
 
 async def generate_artwork_info_max(artwork, user_description):
     start_time_text = time.time()
-    response =  await llm_chain_max.ainvoke({ "artwork": artwork, "user_description": user_description})
+    response =  await llm_chain_max.ainvoke({ "artwork": artwork.get('text'), "user_description": user_description})
     response_text = response.content
     print(f'**Generation of the artwork_info with all parametrs.')
 
     if len(response_text) < 450:
-        print("The BLACKLIST problem. Regeneration with the less number of the parametrs.")
-        response = await llm_chain.ainvoke({ "artwork": artwork, "user_description": None})
+        print("The BLACKLIST problem. Regeneration with the the short_description.")
+        response = await llm_chain.ainvoke({ "artwork": artwork.get('short_description'), "user_description": None})
         print(f'**Generation of the artwork info without user_description.')
 
     response_text_new = response.content
