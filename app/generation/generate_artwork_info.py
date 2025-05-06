@@ -34,13 +34,11 @@ template_info = """You are a skilled museum guide specializing in personalized a
 """
 
 giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', 
-                scope="GIGACHAT_API_PERS",
+                model='GigaChat',
                 verify_ssl_certs=False)
 
 giga_max = GigaChat(credentials=gigachat_token_max,
                 model="GigaChat-Max", 
-                scope="GIGACHAT_API_PERS",
                 verify_ssl_certs=False)  
 
 prompt_info = PromptTemplate.from_template(template_info)
@@ -93,7 +91,7 @@ async def generate_artwork_info_max(artwork, user_description):
 
     response_text_new = response.content
     if len(response_text_new) < 450:
-        print("The BLACKLIST problem. Send the origina artwork info.")
+        print("The BLACKLIST problem. Send the original artwork info.")
         response =  clean_text(artwork)
         print(f'**Responce is the original artwork info')
 

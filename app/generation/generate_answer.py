@@ -5,6 +5,7 @@ import time
 import settings.settings
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
+gigachat_token_max = settings.settings.GIGACHAT_TOKEN_MAX
 
 template_info = """You must communicate with the user based on their USER DESCRIPTION.  
 Your task is to provide the most accurate and engaging response to the user's QUESTION, based on their interests to make the answer as captivating as possible.  
@@ -37,12 +38,10 @@ Answer the QUESTION using the provided ARTWORK INFO.
 
 giga = GigaChat(credentials=gigachat_token,
                 model='GigaChat', 
-                scope="GIGACHAT_API_CORP",
                 verify_ssl_certs=False)
 
-giga_max = GigaChat(credentials=gigachat_token,
+giga_max = GigaChat(credentials=gigachat_token_max,
                 model="GigaChat-Max", 
-                scope="GIGACHAT_API_CORP",
                 verify_ssl_certs=False)
 
 

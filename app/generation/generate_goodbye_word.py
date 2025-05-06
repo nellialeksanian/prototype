@@ -34,7 +34,6 @@ template_info = """I want you to interact with the user based on their USER DESC
 
 giga = GigaChat(credentials=gigachat_token,
                 model='GigaChat', 
-                scope="GIGACHAT_API_CORP",
                 verify_ssl_certs=False)        
 
 prompt_info = PromptTemplate.from_template(template_info)

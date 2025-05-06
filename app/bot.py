@@ -198,10 +198,10 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
             validation_res = 'No validation '
             logging.error(f"Error while validation: {e}")
         
-        if validation_res.lower() == "true":
+        if validation_res.lower() == "hallucinated":
             artwork_info, generation_time_text = await generate_artwork_info_max(artwork, user_description)
             validation_res_max = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
-            if validation_res_max.lower() == "true":
+            if validation_res_max.lower() == "hallucinated":
                 artwork_info = artwork.get("text")
         else:
             artwork_info = artwork_info

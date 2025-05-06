@@ -4,48 +4,74 @@ import os
 import settings.settings
 from sql.create_tables import save_to_database
 
-gigachat_token = settings.settings.GIGACHAT_TOKEN
+gigachat_token = settings.settings.GIGACHAT_TOKEN_MAX
 
 giga = GigaChat (
     credentials=gigachat_token,
     model="GigaChat-Max",
-    scope="GIGACHAT_API_CORP",
     verify_ssl_certs=False
 )
 
 prompt = PromptTemplate(
     input_variables=["context", "question", "answer"],
     template="""
-    A hallucination occurs if the ANSWER includes information not grounded in the CONTEXT or does not directly and accurately address the QUESTION.
+    You are a fact-checking assistant. Your job is to identify whether the ANSWER contains any hallucinations based on the CONTEXT and QUESTION.
 
     Definition:
-    - The ANSWER is hallucinated if it contradicts the CONTEXT, adds unsupported claims, introduces fabricated, untrue details, or fails to correctly address the QUESTION.
-    - The ANSWER is faithful if it strictly adheres to the facts in the CONTEXT and:
-        1. Accurately responds to the QUESTION using the provided CONTEXT, OR
-        2. Clearly states that it cannot answer the QUESTION because the CONTEXT does not contain relevant information.
+    - A hallucination occurs if the ANSWER:
+    - Includes claims or facts that are not in the CONTEXT.
+    - Contradicts information in the CONTEXT.
+    - Fails to directly and accurately answer the QUESTION.
+    - An ANSWER is faithful if:
+    - It answers the QUESTION based only on the CONTEXT, OR
+    - It states that the CONTEXT does not contain enough information.
 
     Instructions:
-    - Respond ONLY "true" if the ANSWER contains hallucinations.
-    - Respond ONLY "false" if the ANSWER is grounded, accurate, and appropriately addresses the QUESTION.
+    Respond only with:
+    - "true" if the ANSWER contains any hallucination.
+    - "false" if the ANSWER is completely grounded in the CONTEXT.
+
+    Example 1:
+    CONTEXT: Marie Curie won two Nobel Prizes.
+    QUESTION: How many Nobel Prizes did Marie Curie win?
+    ANSWER: Marie Curie won two Nobel Prizes.
+    → false
+
+    Example 2:
+    CONTEXT: Marie Curie won two Nobel Prizes.
+    QUESTION: What kind of music did Marie Curie enjoy?
+    ANSWER: Marie Curie enjoyed classical music.
+    → true
+
+    Example 3:
+    CONTEXT: The Great Fire of London started in a bakery on Pudding Lane in 1666. It destroyed much of the city, including 87 churches and thousands of homes. There were very few recorded deaths.
+    QUESTION: Summarize the event in one or two sentences.
+    ANSWER: The Great Fire of London in 1666 began in a bakery on Pudding Lane and caused widespread destruction, including the loss of many buildings and lives.
+    → true
+
+    Example 4:
+    CONTEXT: The Great Fire of London started in a bakery on Pudding Lane in 1666. It destroyed much of the city, including 87 churches and thousands of homes. There were very few recorded deaths.
+    QUESTION: Summarize the event in one or two sentences.
+    ANSWER: The Great Fire of London in 1666 began in a bakery on Pudding Lane and destroyed a large part of the city, including many homes and churches. Few deaths were recorded.
+    → false
+
+    Now evaluate the following:
 
     CONTEXT:
-
     =====
     {context}
     =====
 
     QUESTION:
-
     =====
-    {question}
+    {query}
     =====
 
     ANSWER:
-
     =====
-    {answer}
+    {output}
     =====
-"""
+ """
 )
 
 
