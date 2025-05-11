@@ -3,11 +3,21 @@ from langchain.prompts import PromptTemplate
 import time
 from process_data.load_data import clean_text
 import settings.settings
-import base64
-import os
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
-gigachat_token_max = settings.settings.GIGACHAT_TOKEN_MAX
+gigachat_token_max=settings.settings.GIGACHAT_TOKEN_MAX
+
+giga = GigaChat (
+    credentials=gigachat_token,
+    model='GigaChat',
+    verify_ssl_certs=False
+)
+
+giga_max = GigaChat (
+    credentials=gigachat_token_max,
+    model="GigaChat-Max", 
+    verify_ssl_certs=False
+)  
 
 template_info = """You are a skilled museum guide specializing in personalized artwork descriptions. Make your explanations  appropriate for the user’s interests from their USER DESCRIPTION, making the information as captivating as possible.
 
@@ -32,14 +42,6 @@ template_info = """You are a skilled museum guide specializing in personalized a
 
 
 """
-
-giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat',
-                verify_ssl_certs=False)
-
-giga_max = GigaChat(credentials=gigachat_token_max,
-                model="GigaChat-Max", 
-                verify_ssl_certs=False)  
 
 prompt_info = PromptTemplate.from_template(template_info)
 
@@ -66,7 +68,7 @@ async def generate_artwork_info(artwork, user_description):
 
     if len(response_text_new) < 450:
         print("The BLACKLIST problem. Send the origina artwork info.")
-        response =  clean_text(artwork)
+        response =  clean_text(artwork.get('short_description'))
         print(f'**Responce is the original artwork info')
 
     end_time_text = time.time()
@@ -92,7 +94,7 @@ async def generate_artwork_info_max(artwork, user_description):
     response_text_new = response.content
     if len(response_text_new) < 450:
         print("The BLACKLIST problem. Send the original artwork info.")
-        response =  clean_text(artwork)
+        response =  clean_text(artwork.get('short_description'))
         print(f'**Responce is the original artwork info')
 
     end_time_text = time.time()

@@ -5,7 +5,19 @@ import time
 import settings.settings
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
-gigachat_token_max = settings.settings.GIGACHAT_TOKEN_MAX
+gigachat_token_max=settings.settings.GIGACHAT_TOKEN_MAX
+
+giga = GigaChat (
+    credentials=gigachat_token,
+    model='GigaChat',
+    verify_ssl_certs=False
+)
+
+giga_max = GigaChat (
+    credentials=gigachat_token_max,
+    model="GigaChat-Max", 
+    verify_ssl_certs=False
+)  
 
 template_info = """You must communicate with the user based on their USER DESCRIPTION.  
 Your task is to provide the most accurate and engaging response to the user's QUESTION, based on their interests to make the answer as captivating as possible.  
@@ -34,16 +46,6 @@ Answer the QUESTION using the provided ARTWORK INFO.
     {artwork}
     =====
 """
-
-
-giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', 
-                verify_ssl_certs=False)
-
-giga_max = GigaChat(credentials=gigachat_token_max,
-                model="GigaChat-Max", 
-                verify_ssl_certs=False)
-
 
 prompt_info = PromptTemplate.from_template(template_info)
 
