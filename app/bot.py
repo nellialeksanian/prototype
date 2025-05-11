@@ -1,4 +1,3 @@
-import os
 import uuid
 import asyncio
 from aiogram import Bot, Dispatcher, F, types
@@ -159,7 +158,7 @@ async def generate_route_response(message: Message, state: FSMContext):
 
         titles = [artwork.get('title') for artwork in artworks]
         await state.update_data(artworks=artworks) 
-        # await save_generated_route_to_database(session_id, user_description, user_query, top_k, titles)
+        await save_generated_route_to_database(session_id, user_description, user_query, top_k, titles, route)
         await message.answer("Вы готовы начать экскурсию?", reply_markup=create_keyboard([("Да, я готов(а)", "next_artwork")]))
     except Exception as e:
         logging.error(f"Route generation error: {e}")
@@ -240,7 +239,7 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
             await query.message.answer("К сожалению, я не смог сгенерировать аудиоформат")
 
 
-        # await save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
+        await save_generated_artwork_info_to_database(session_id, user_description, title, artwork_info, voice_filename, generation_time_text, generation_time_audio)    
         await state.update_data(current_artwork_index=data.get('current_artwork_index', 0) + 1)
 
         # Check if more artworks exist
@@ -303,7 +302,7 @@ async def handle_question_background(message: Message, state: FSMContext, data: 
             await message.answer_voice(voice_answer)
         else:
             await message.answer("К сожалению, я не смог сгенерировать аудиофрмат.")
-        # await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
+        await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
     else:
         answer_max, generation_time_text = await generate_answer_max(user_question, artwork, user_description)
         secondary_validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
@@ -392,9 +391,9 @@ async def error_handler(update, exception: Exception = None):
     return False
 
 async def main():
-    # await init_db_pool()
+    await init_db_pool()
     await dp.start_polling(bot)
-    # await dp.start_polling(bot, on_shutdown=close_db_pool)
+    await dp.start_polling(bot, on_shutdown=close_db_pool)
 
 if __name__ == '__main__':
     asyncio.run(main())

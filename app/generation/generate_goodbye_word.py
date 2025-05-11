@@ -5,7 +5,6 @@ import time
 import settings.settings
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
-print(gigachat_token)
 exhibition_description = settings.settings.EXHIBITION_DESCRIPTION
 
 giga = GigaChat(

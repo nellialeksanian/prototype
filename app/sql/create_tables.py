@@ -57,13 +57,13 @@ async def save_generated_goodbye_to_database(session_id, user_description, gener
     except Exception as e:
         print(f"Error saving generated_goodbye to database: {e}")
 
-async def save_generated_route_to_database(session_id, user_description, user_query, k, artworks, generated_text):
+async def save_generated_route_to_database(session_id, user_description, user_query, k, artworks, created_route):
     try:
         async with pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO generated_routes (session_id, user_description, user_query, k, artworks, generated_text)
+                INSERT INTO generated_routes (session_id, user_description, user_query, k, artworks, created_route)
                 VALUES ($1, $2, $3, $4, $5, $6)
-            """, session_id, user_description, user_query, k, artworks, generated_text)
+            """, session_id, user_description, user_query, k, artworks, created_route)
         print("Generated route saved successfully!")
     except Exception as e:
         print(f"Error saving generated route to database: {e}")
