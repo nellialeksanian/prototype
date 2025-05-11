@@ -1,5 +1,5 @@
 import networkx as nx
-import time
+import ast
 import os
 from itertools import combinations
 import json
@@ -11,7 +11,8 @@ from embeddings.embeddings_similarity import search
 import settings.settings
 
 class MuseumRouteBuilder:
-    def __init__(self, graph_file):
+    def __init__(self, graph_file, background_image_path):
+        self.background_image_path = background_image_path
         self.graph_file = graph_file
         with open(self.graph_file, "r", encoding="utf-8") as f:
             self.graph_data = json.load(f)
@@ -20,59 +21,56 @@ class MuseumRouteBuilder:
         """Загрузка графа из JSON-файла."""
         G = nx.Graph()
         for node in self.graph_data["nodes"]:
-            G.add_node(node["id"], title=node["title"], x=node["x"], y=node["y"])
+            G.add_node(
+                node["id"],
+                x=node["x"],
+                y=node["y"],
+                pos=(node["x"], node["y"])  # Добавляем сразу pos
+            )
         for edge in self.graph_data["edges"]:
             G.add_edge(edge["from"], edge["to"], weight=edge["distance"])
-
         return G
 
-    def find_artwork_nodes(self, G, titles):
-        """Находит узлы, соответствующие данным названиям произведений искусства."""
-        artwork_nodes = {}
-        for node, data in G.nodes(data=True):
-            if data['title'] in titles:
-                artwork_nodes.setdefault(data['title'], []).append(node)
-        return artwork_nodes
-
-    def select_optimal_nodes(self, G, artwork_nodes):
+    def select_optimal_nodes(self, G, nodes_list):
         """Выбирает оптимальные узлы для маршрута."""
         selected_nodes = []
         nodes_to_visit = ['0']  # Начальная точка
+        node_to_entry_map = {} 
 
-        for title, nodes in artwork_nodes.items():
-            if len(nodes) == 1:
-                selected_nodes.extend(nodes)  # Если одна точка, добавляем её
+        for entry in nodes_list:
+            if isinstance(entry, str) and entry.startswith('[') and entry.endswith(']'):
+                # Это строка-список → разбираем и выбираем лучший
+                entry_list = [str(x) for x in ast.literal_eval(entry)]
+                best_node = self.select_best_node(G, entry_list)
+                if best_node is not None:
+                    selected_nodes.append(best_node)
+                node_to_entry_map[best_node] = entry
             else:
-                best_node = self.select_best_node(G, nodes, artwork_nodes)
-                selected_nodes.append(best_node)  # Добавляем лучший узел
+                # Это одиночный узел → просто добавляем
+                if G.has_node(entry):
+                    selected_nodes.append(entry)
+                    node_to_entry_map[entry] = entry
         nodes_to_visit.extend(selected_nodes)
-        return nodes_to_visit
+        return nodes_to_visit, node_to_entry_map 
 
-    def select_best_node(self, G, nodes, artwork_nodes):
+    def select_best_node(self, G, nodes):
         """Для нескольких узлов выбирает оптимальный узел по минимальной длине маршрута."""
         best_node = None
         best_length = float('inf')
-        other_nodes = [n for t, nodelist in artwork_nodes.items() if t != nodes[0] for n in nodelist]
-
         for node in nodes:
-            route_length = self.calculate_route_length(G, node, other_nodes)
-            if route_length < best_length:
+            route_length = 0
+            for other_node in nodes:
+                if node != other_node:
+                    try:
+                        route_length += nx.shortest_path_length(G, source=node, target=other_node, weight='distance')
+                    except nx.NetworkXNoPath:
+                        route_length = float('inf')
+                        break
+        if route_length < best_length:
                 best_length = route_length
                 best_node = node
 
         return best_node
-
-    def calculate_route_length(self, G, node, other_nodes):
-        """Вычисляет общую длину маршрута для одного узла по всем остальным узлам."""
-        route_length = 0
-        for other_node in other_nodes:
-            if node != other_node:
-                try:
-                    route_length += nx.shortest_path_length(G, source=node, target=other_node, weight='distance')
-                except nx.NetworkXNoPath:
-                    route_length = float('inf')
-                    break
-        return route_length
 
     def build_shortest_paths(self, G, nodes_to_visit):
         """Строит матрицу кратчайших путей между узлами маршрута."""
@@ -115,19 +113,12 @@ class MuseumRouteBuilder:
                 print(f"⚠ Нет пути между {tsp_route[i]} и {tsp_route[i + 1]}")
         return full_real_path
     
-    def draw_colored_route(self, full_real_path, improved_route, background_image_path):
+    def draw_colored_route(self, G, full_real_path, improved_route):
         """Визуализирует маршрут и возвращает изображение в BytesIO для Telegram."""
-        image = cv2.imread(background_image_path)
+        image = cv2.imread(self.background_image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        G = nx.Graph()
-        for node in self.graph_data["nodes"]:
-            G.add_node(node["id"], pos=(node["x"], node["y"]))
-        for edge in self.graph_data["edges"]:
-            G.add_edge(edge["from"], edge["to"])
-
         pos = nx.get_node_attributes(G, "pos")
-
         subgraph = nx.Graph()
         for i in range(len(full_real_path) - 1):
             u, v = full_real_path[i], full_real_path[i + 1]
@@ -164,14 +155,10 @@ class MuseumRouteBuilder:
         return output_image_path
 
     def build_route(self, G, retrieved_documents, k=5):
-        titles = retrieved_documents['title']
-
-        # Находим подходящие узлы по названиям
-        artwork_nodes = self.find_artwork_nodes(G, titles)
-        print(f'artwork_nodes: {artwork_nodes}')
-
+        """Основная функция построения маршрута."""
+        node_ids = retrieved_documents['nodes']
         # Выбираем узлы для посещения
-        nodes_to_visit = self.select_optimal_nodes(G, artwork_nodes)
+        nodes_to_visit, node_to_entry_map  = self.select_optimal_nodes(G, node_ids)
 
         # Строим матрицу кратчайших путей
         shortest_paths, unreachable_pairs = self.build_shortest_paths(G, nodes_to_visit)
@@ -196,26 +183,29 @@ class MuseumRouteBuilder:
 
         print("✅ Полный маршрут по всем узлам:", full_real_path)
 
-        output_image_path = self.draw_colored_route(full_real_path, improved_route, 'data/Slovcova/route.jpg')
+        output_image_path = self.draw_colored_route(G, full_real_path, improved_route)
 
         # Собираем информацию о произведениях
         ordered_artworks = []
-        added_titles = set()
+        added_nodes  = set()
         for node in improved_route:
             if node == '0':
                 continue
-            title = G.nodes[node].get('title')
-            if title in titles and title not in added_titles:
-                index = titles.index(title)
+            if node not in added_nodes:
+                original_entry = node_to_entry_map.get(node, node)
+                try:
+                    index = retrieved_documents['nodes'].index(original_entry)
+                except ValueError:
+                    print(f"⚠ Не найден индекс для {node} (original_entry={original_entry})")
+                    continue
                 ordered_artworks.append({
-                    "title": title,
-                    "name": retrieved_documents['name'][index] if index < len(retrieved_documents['name']) else "",
                     "id": node,
+                    "name": retrieved_documents['name'][index] if index < len(retrieved_documents['name']) else "",
                     "text": retrieved_documents['text'][index] if index < len(retrieved_documents['text']) else "",
                     "short_description": retrieved_documents['short_description'][index] if index < len(retrieved_documents['short_description']) else "",
                     "image": retrieved_documents['image'][index] if index < len(retrieved_documents['image']) else ""
                 })
-                added_titles.add(title)
+                added_nodes.add(node)
 
         return improved_route, ordered_artworks, output_image_path
 
@@ -223,7 +213,7 @@ class MuseumRouteBuilder:
     async def generate_route(self, k, user_description, user_query):
         """Генерация маршрута с помощью GigaChat."""
         scores, retrieved_documents = search(user_query, k)
-        print(retrieved_documents['nodes'])
+        print(f"Retrived nodes {retrieved_documents['nodes']}")
         G = self.load_graph()
         route, ordered_artworks, output_image_path = self.build_route(G, retrieved_documents, k)
         lines = []
@@ -238,5 +228,6 @@ class MuseumRouteBuilder:
         return text, ordered_artworks, output_image_path
     
 graph_file = settings.settings.GRAPH_FILE
+background_image_path = settings.settings.BACKGROUND_IMAGE_PATH
 
-route_builder = MuseumRouteBuilder(graph_file)
+route_builder = MuseumRouteBuilder(graph_file, background_image_path)
