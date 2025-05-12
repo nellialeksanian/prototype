@@ -7,6 +7,11 @@ import settings.settings
 gigachat_token = settings.settings.GIGACHAT_TOKEN
 exhibition_description = settings.settings.EXHIBITION_DESCRIPTION
 
+giga = GigaChat(
+    credentials=gigachat_token,
+    model='GigaChat', 
+    verify_ssl_certs=False
+)        
 
 template_info = """I want you to interact with the user based on their USER DESCRIPTION.  
     You are an experienced museum guide who has just led an interactive tour of the exhibition "Культурный слой" at the Музейный комплекс имени И.Я. Словцова with givven MUSEUM DESCRIPTION.  
@@ -31,10 +36,6 @@ template_info = """I want you to interact with the user based on their USER DESC
 
         Благодарю вас за участие в экскурсии по выставке "Культурный слой" в Музейном комплексе имени И.Я. Словцова! Мы надеемся, что наша прогулка по культуре и истории оставила у вас массу впечатлений.
 """  
-
-giga = GigaChat(credentials=gigachat_token,
-                model='GigaChat', 
-                verify_ssl_certs=False)        
 
 prompt_info = PromptTemplate.from_template(template_info)
 
