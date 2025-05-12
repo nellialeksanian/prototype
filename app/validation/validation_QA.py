@@ -64,12 +64,12 @@ prompt = PromptTemplate(
 
     QUESTION:
     =====
-    {query}
+    {question}
     =====
 
     ANSWER:
     =====
-    {output}
+    {answer}
     =====
  """
 )
