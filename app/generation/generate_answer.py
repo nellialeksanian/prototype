@@ -1,21 +1,21 @@
-import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
 import time
 import settings.settings
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
-gigachat_token_max=settings.settings.GIGACHAT_TOKEN_MAX
 
 giga = GigaChat (
     credentials=gigachat_token,
     model='GigaChat',
+    scope="GIGACHAT_API_CORP",
     verify_ssl_certs=False
 )
 
 giga_max = GigaChat (
-    credentials=gigachat_token_max,
+    credentials=gigachat_token,
     model="GigaChat-Max", 
+    scope="GIGACHAT_API_CORP",
     verify_ssl_certs=False
 )  
 

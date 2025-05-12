@@ -1,6 +1,5 @@
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-import os
 import settings.settings
 from sql.create_tables import save_to_database
 
