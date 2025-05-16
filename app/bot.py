@@ -208,7 +208,7 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
             artwork_info, generation_time_text = await generate_artwork_info_max(artwork, user_description)
             validation_res_max = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
             if validation_res_max.lower() == "hallucinated":
-                artwork_info = artwork.get("text")
+                artwork_info = artwork.get("short_description")
         else:
             artwork_info = artwork_info
         clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
@@ -289,7 +289,7 @@ async def handle_question_background(message: Message, state: FSMContext, data: 
     user_description = data.get("user_description")
     answer, generation_time_text = await generate_answer(user_question, artwork, user_description)
     try:
-        validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer, user_question)
+        validation_res = await evaluate_hallucinations(session_id, artwork, answer, user_question)
         logging.info(f'validation result:{ validation_res}')
     except Exception as e:
         validation_res = 'No validation'
@@ -312,7 +312,7 @@ async def handle_question_background(message: Message, state: FSMContext, data: 
         await save_generated_answer_to_database(session_id, user_question, user_description, title, clean_answer, voice_filename, generation_time_text, generation_time_audio)
     else:
         answer_max, generation_time_text = await generate_answer_max(user_question, artwork, user_description)
-        secondary_validation_res = await evaluate_hallucinations(session_id, artwork.get("text"), answer_max, user_question)
+        secondary_validation_res = await evaluate_hallucinations(session_id, artwork, answer_max, user_question)
         if secondary_validation_res.lower() == "false":
             await message.answer(answer_max)
             clean_answer_max = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', answer_max)
