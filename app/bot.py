@@ -201,7 +201,7 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
             artwork_info, generation_time_text = await generate_artwork_info_max(artwork, user_description)
             validation_res_max = await evaluate_hallucinations_artworkinfo(session_id, artwork.get("text"), artwork_info)
             if validation_res_max.lower() == "hallucinated":
-                artwork_info = artwork.get("text")
+                artwork_info = artwork.get("short_description")
         else:
             artwork_info = artwork_info
         clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
