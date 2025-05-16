@@ -128,12 +128,12 @@ class MuseumRouteBuilder:
             subgraph.add_node(node)
 
         node_colors = ['#8b00ff' if node in improved_route else '#cccccc' for node in subgraph.nodes]
-        node_size = [100 if node in improved_route else 50 for node in subgraph.nodes]
+        node_size = [200 if node in improved_route else 100 for node in subgraph.nodes]
 
         random_filename = str(uuid.uuid4()) + '.jpg' 
         output_image_path = os.path.join('data', 'images', random_filename)
 
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(12, 8))
         ax.imshow(image)
         os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
         nx.draw(subgraph,
@@ -143,12 +143,12 @@ class MuseumRouteBuilder:
                 node_color=node_colors,
                 edge_color="orange",
                 node_size=node_size,
-                font_size=5,
+                font_size=7,
                 width=2,
                 font_color="white")
 
         plt.axis('off')
-        plt.savefig(output_image_path, dpi=250, bbox_inches='tight', pad_inches=0)
+        plt.savefig(output_image_path, dpi=300, bbox_inches='tight', pad_inches=0)
         plt.close()
 
         return output_image_path

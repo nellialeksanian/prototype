@@ -355,14 +355,10 @@ async def end_tour_handler(message_or_query, state: FSMContext):
         data = await state.get_data()
         message = message_or_query
         await message.answer(feedback_form, parse_mode=ParseMode.MARKDOWN)
-        user_description = data.get("user_description", "")
-        session_id = data.get("session_id")
-        await save_generated_goodbye_to_database(session_id, user_description, feedback_form, generation_time=0)
     else:
         data = await state.get_data()
         query = message_or_query
         await query.message.answer(feedback_form, parse_mode=ParseMode.MARKDOWN)
-        await save_generated_goodbye_to_database(session_id, user_description, feedback_form, generation_time=0)
     await state.clear()
 
 # Comment out the function below if it causes bugs
