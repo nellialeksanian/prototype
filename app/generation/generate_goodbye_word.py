@@ -2,6 +2,7 @@ from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
 import time
 import settings.settings
+from settings.retry_helpers import invoke_llm_chain
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
 exhibition_description = settings.settings.EXHIBITION_DESCRIPTION
@@ -9,7 +10,7 @@ exhibition_description = settings.settings.EXHIBITION_DESCRIPTION
 giga = GigaChat(
     credentials=gigachat_token,
     model='GigaChat', 
-    scope="GIGACHAT_API_CORP",
+    # scope="GIGACHAT_API_CORP",
     verify_ssl_certs=False
 )        
 
@@ -44,7 +45,7 @@ llm_chain = prompt_info | giga
 async def generate_goodbye_word(exhibition_description, user_description):
     start_time_text = time.time()
     parsed_unpack = open(exhibition_description, encoding="utf-8").read()
-    response =  await llm_chain.ainvoke({"info": parsed_unpack, "user_description": user_description})
+    response =  await invoke_llm_chain(llm_chain, {"info": parsed_unpack, "user_description": user_description})
     end_time_text = time.time()
     generation_time_text = float(end_time_text - start_time_text)
     return response.content if hasattr(response, 'content') else str(response), generation_time_text

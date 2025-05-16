@@ -18,7 +18,6 @@ from generation.generation_route import route_builder
 from generation.generate_artwork_info import generate_artwork_info, generate_artwork_info_max
 from generation.generate_answer import generate_answer, generate_answer_max
 from process_data.load_data import send_images_then_text_group, send_text_in_chunks
-from generation.generate_goodbye_word import generate_goodbye_word, exhibition_description
 from validation.validation_QA import evaluate_hallucinations
 from validation.validation_artworkinfo import evaluate_hallucinations_artworkinfo
 
@@ -125,12 +124,8 @@ async def handle_tour_length(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TourState.route_mode)
 
     await callback.answer()
-    await callback.message.answer(
-        "А теперь расскажи, что тебе интересно посмотреть.\n"
-        "Ты можешь просто описать тему, настроение или даже конкретные типы работ, которые хочешь увидеть (например, *яркие картины*, *что-то про природу*, *современное искусство*).\n"
-        "\n"
-        "📌 Чем точнее ты сформулируешь интерес — тем точнее будет маршрут!"
-    )
+    answer = """А теперь расскажи, что тебе интересно посмотреть.\n\nТы можешь просто описать тему, настроение или даже конкретные типы работ, которые хочешь увидеть (например, *яркие картины*, *что-то про природу*, *современное искусство*).\n\n📌 Чем точнее ты сформулируешь интерес — тем точнее будет маршрут!"""
+    await callback.message.answer(answer, parse_mode=ParseMode.MARKDOWN)
 
 @dp.message(TourState.route_mode)
 async def generate_route_response(message: Message, state: FSMContext):
@@ -148,17 +143,29 @@ async def generate_route_response(message: Message, state: FSMContext):
         top_k = data.get("top_k", 5)
         logging.info(f"top_k: {top_k}")
         route, artworks, output_image_path = await route_builder.generate_route(k=top_k, user_description=user_description, user_query=user_query)
-        await message.answer(route)
+        
+        try:
+            await message.bot.unpin_chat_message(chat_id=message.chat.id)
+        except Exception as e:
+            print(f"Не удалось открепить: {e}")
 
         try:
             photo = FSInputFile(output_image_path) 
-            await message.answer_photo(photo, caption="Карта маршрута")
+            caption = """*Карта вашего маршрута*\n\n Начало маршрута — точка «0» (вход на выставку).\n\n Вы пройдёте по круговому маршруту и завершите его в той же точке.\n\n 🟣 Фиолетовые экспонаты — те, которые вы увидите во время персональной экскурсии. Номера рядом соответствуют списку выше.\n\n ⚪ Серые экспонаты — это просто ориентиры. Вы пройдёте мимо них по пути к основным точкам.\n\n 📍Чтобы снова открыть карту, нажмите на закреплённое сообщение.\n\n Чтобы продолжить маршрут, нажмите на *круглую кнопку-стрелку в правом нижнем углу* — она пролистает вас дальше  ➡️."""
+            await message.answer(route)
+            sent = await message.answer_photo(photo, caption=caption, parse_mode=ParseMode.MARKDOWN)
+            await message.bot.pin_chat_message(
+            chat_id=message.chat.id,
+            message_id=sent.message_id,
+            disable_notification=True
+        )
         except Exception as e:
             logging.error(f"Error with sending photo: {e}")
 
         titles = [artwork.get('name') for artwork in artworks]
         await state.update_data(artworks=artworks) 
         await save_generated_route_to_database(session_id, user_description, user_query, top_k, titles, route)
+        await message.answer("🎧 Экскурсия содержит аудио, которое рекомендуется слушать на *1,5x* — так привычнее для слуха!", parse_mode=ParseMode.MARKDOWN) 
         await message.answer("Вы готовы начать экскурсию?", reply_markup=create_keyboard([("Да, я готов(а)", "next_artwork")]))
     except Exception as e:
         logging.error(f"Route generation error: {e}")
@@ -206,9 +213,10 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
             artwork_info = artwork_info
         clean_artwork_info = re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9\s.,]', '', artwork_info)
 
+        voice_artwork = None
         try:
             voice_artwork, generation_time_audio = await converter_text_to_voice(clean_artwork_info)
-            voice_filename = voice_artwork.filename if voice_artwork else None 
+            voice_filename = voice_artwork.filename if voice_artwork else None
         except Exception as e:
             logging.error(f"Cannot send audio: {e}")
         
@@ -259,7 +267,6 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
             )
     except Exception as e:
         logging.error(f"Error in process_artwork_info: {e}")
-
 
 @dp.message(TourState.question_mode)
 async def process_question(message: Message, state: FSMContext):
@@ -336,40 +343,26 @@ async def handle_question_background(message: Message, state: FSMContext, data: 
 @dp.message(F.text == "Завершить экскурсию")
 @dp.callback_query(F.data == "end_tour")
 async def end_tour_handler(message_or_query, state: FSMContext):
-    if isinstance(message_or_query, Message):
-        data = await state.get_data()
-        user_description = data.get("user_description", "")
-        session_id = data.get("session_id")
-        message = message_or_query
-        goodbye_text, generation_time = await generate_goodbye_word(exhibition_description, user_description)
-        await save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
-        await message.answer(
-            goodbye_text + "\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).",
-            parse_mode=ParseMode.MARKDOWN
-        )
-    else:
-        data = await state.get_data()
-        user_description = data.get("user_description", "")
-        session_id = data.get("session_id")
-        query = message_or_query
-        await query.answer()
-        goodbye_text, generation_time = await generate_goodbye_word(exhibition_description, user_description)
-        await save_generated_goodbye_to_database(session_id, user_description, goodbye_text, generation_time)
-        await query.message.answer(goodbye_text + f"\n\nПродолжить знакомство с пространством музея вы можете на [сайте](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).", parse_mode=ParseMode.MARKDOWN)
-
     feedback_form = (
-        "Спасибо за участие в тестировании Музейного ИИ-гида!\n"
-        "Твоя обратная связь **очень важна** для развития проекта.\n\n"
-        "Мы подготовили небольшую форму с основными вопросами. Там ты сможешь рассказать, что понравилось, что можно улучшить и сообщить о проблемах, если что-то пошло не так.\n\n"
-        "📝 [Оценить экскурсию и поделиться мнением](https://docs.google.com/forms/d/e/1FAIpQLSfBvOxkqVCbAktduDqEtY82-BJcQw8g4H18GTz_gurAKT-74A/viewform)\n\n"
-        "До новых встреч в мире искусства! 🎨"
+        "🎨 Благодарим за участие в выставке «Культурный слой» в музеи имени И. Я. Словцова\n"
+        "Это был увлекательный путь через историю и культуру Тюмени, представленные через призму современного искусства\n"
+        "🌐 Хочешь продолжить знакомство с музеем? Загляни на [сайт](https://museum72.ru/afisha/glavnyy-kompleks-imeni-i-ya-slovtsova/muzeynyy-kompleks-imeni-i-ya-slovtsova/kulturnyy-sloy/).\n\n"
+        "📝 Нам важно услышать, как всё прошло. Пара минут — и ты поможешь сделать проект лучше.\n"
+        "[Оценить экскурсию и поделиться мнением](https://docs.google.com/forms/d/e/1FAIpQLSfBvOxkqVCbAktduDqEtY82-BJcQw8g4H18GTz_gurAKT-74A/viewform)\n\n"
+        "До новых встреч в мире искусства! 🎭"
     )
-
     if isinstance(message_or_query, Message):
+        data = await state.get_data()
+        message = message_or_query
         await message.answer(feedback_form, parse_mode=ParseMode.MARKDOWN)
+        user_description = data.get("user_description", "")
+        session_id = data.get("session_id")
+        await save_generated_goodbye_to_database(session_id, user_description, feedback_form, generation_time=0)
     else:
+        data = await state.get_data()
+        query = message_or_query
         await query.message.answer(feedback_form, parse_mode=ParseMode.MARKDOWN)
-
+        await save_generated_goodbye_to_database(session_id, user_description, feedback_form, generation_time=0)
     await state.clear()
 
 # Comment out the function below if it causes bugs
