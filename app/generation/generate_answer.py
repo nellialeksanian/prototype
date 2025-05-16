@@ -1,21 +1,21 @@
-import os
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
 import time
 import settings.settings
 
 gigachat_token = settings.settings.GIGACHAT_TOKEN
-gigachat_token_max=settings.settings.GIGACHAT_TOKEN_MAX
 
 giga = GigaChat (
     credentials=gigachat_token,
     model='GigaChat',
+    scope="GIGACHAT_API_CORP",
     verify_ssl_certs=False
 )
 
 giga_max = GigaChat (
-    credentials=gigachat_token_max,
+    credentials=gigachat_token,
     model="GigaChat-Max", 
+    scope="GIGACHAT_API_CORP",
     verify_ssl_certs=False
 )  
 
@@ -54,10 +54,10 @@ llm_chain_max = prompt_info | giga_max
 
 async def generate_answer(user_question, artwork, user_description):
     start_time_text = time.time()
-    response =  await llm_chain.ainvoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
+    response =  await llm_chain.ainvoke({"user_question": user_question, "artwork": artwork.get('text'), "user_description": user_description})
     response_text = response.content
     if len(response_text) < 350:
-        response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})
+        response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork.get('short_description'), "user_description": None})
     end_time_text = time.time()
     generation_time_text = float(end_time_text - start_time_text)
     if hasattr(response, 'content'):
@@ -67,10 +67,10 @@ async def generate_answer(user_question, artwork, user_description):
     
 async def generate_answer_max(user_question, artwork, user_description):
     start_time_text = time.time()
-    response =  await llm_chain_max.ainvoke({"user_question": user_question, "artwork": artwork, "user_description": user_description})
+    response =  await llm_chain_max.ainvoke({"user_question": user_question, "artwork": artwork.get('text'), "user_description": user_description})
     response_text = response.content
     if len(response_text) < 350:
-        response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork, "user_description": None})
+        response =  llm_chain.invoke({ "user_question": user_question, "artwork": artwork.get('short_description'), "user_description": None})
     end_time_text = time.time()
     generation_time_text = float(end_time_text - start_time_text)
     if hasattr(response, 'content'):

@@ -156,7 +156,7 @@ async def generate_route_response(message: Message, state: FSMContext):
         except Exception as e:
             logging.error(f"Error with sending photo: {e}")
 
-        titles = [artwork.get('title') for artwork in artworks]
+        titles = [artwork.get('name') for artwork in artworks]
         await state.update_data(artworks=artworks) 
         await save_generated_route_to_database(session_id, user_description, user_query, top_k, titles, route)
         await message.answer("Вы готовы начать экскурсию?", reply_markup=create_keyboard([("Да, я готов(а)", "next_artwork")]))
@@ -175,7 +175,7 @@ async def handle_next_artwork(query: CallbackQuery, state: FSMContext):
     artworks = data.get('artworks', [])
     
     artwork = artworks[current_artwork_index]
-    title = artwork.get('title', 0)
+    title = artwork.get('name', '')
     await state.update_data(state='question_mode', last_shown_artwork_index=current_artwork_index)
     
     await query.answer()
@@ -271,7 +271,7 @@ async def process_question(message: Message, state: FSMContext):
         return  
     user_question = message.text
     artwork = data.get("artworks", [])[data.get("last_shown_artwork_index", 0)]
-    title = artwork.get('title', 0)
+    title = artwork.get('name', '')
 
     await message.answer("Обрабатываю ваш вопрос... Подождите немного! ⏳")
     await asyncio.sleep(0)

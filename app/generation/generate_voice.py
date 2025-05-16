@@ -1,4 +1,5 @@
 import asyncio
+from typing import Tuple, Optional
 from io import BytesIO
 from gtts import gTTS
 from aiogram.types import BufferedInputFile
@@ -81,7 +82,7 @@ async def accentize_text(text: str):
     converted = await replace_plus_with_accent(accented_text)
     return converted
 
-async def converter_text_to_voice_old(text: str) -> BufferedInputFile:
+async def converter_text_to_voice_old(text: str) -> Tuple[Optional[BufferedInputFile], float]:
     start_time_audio = time.time()
     bytes_file = BytesIO()
     accented_text = await accentize_text(text)

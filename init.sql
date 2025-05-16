@@ -44,12 +44,12 @@ CREATE TABLE generated_artwork_info (
 CREATE TABLE generated_answers (
     id SERIAL PRIMARY KEY,
     session_id TEXT NOT NULL,
-    artwork TEXT NOT NULL,
     user_question TEXT NOT NULL,
-    user_description TEXT,          
+    user_description TEXT,     
+    artwork TEXT NOT NULL,     
     generated_answer TEXT,
     voice_filename TEXT,
-    generation_time_text_sec INT NOT NULL,
+    generation_time_text_sec INT,
     generation_time_audio_sec INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES user_sessions(session_id) ON DELETE CASCADE

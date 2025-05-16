@@ -1,16 +1,16 @@
 from langchain_gigachat.chat_models import GigaChat
 from langchain.prompts import PromptTemplate
-import os
 import settings.settings
 from sql.create_tables import save_to_database
 
-gigachat_token = settings.settings.GIGACHAT_TOKEN_MAX
+gigachat_token = settings.settings.GIGACHAT_TOKEN
 
 giga = GigaChat (
     credentials=gigachat_token,
-    model="GigaChat-Max",
+    model="GigaChat-Max", 
+    scope="GIGACHAT_API_CORP",
     verify_ssl_certs=False
-)
+) 
 
 prompt = PromptTemplate(
     input_variables=["context", "question", "answer"],
