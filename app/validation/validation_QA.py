@@ -82,13 +82,13 @@ async def evaluate_hallucinations(session_id, context, answer, question):
     context_text = context.get("text")
     result = await llm_chain.ainvoke({"context": context_text, "answer": answer, "question": question})
     print(f'**tokens used for validation: {result}')
-    response_text_new = result.content
-    if len(response_text_new) > 13:
-        print("The BLACKLIST problem while validating. Regeneration with the short_description.")
+    finish_reason = result.response_metadata.get("finish_reason")
+
+    if finish_reason == "blacklist":
+        print(f"Finish reason for QA: {finish_reason}. Regeneration with the short_description.")
         context_text = context.get("short_description")
         result =  await llm_chain.ainvoke({"context": context_text, "answer": answer, "question": question})
-        print(f'**Validation result is generated with short_description') 
-        print(f'**tokens used for validation: {result}') 
+        print(f'**tokens used for validation: {result}')
     result = result.content if hasattr(result, 'content') else str(result)
     await save_to_database(session_id, context_text, question, answer, result)
     return result
