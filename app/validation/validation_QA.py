@@ -79,8 +79,16 @@ llm_chain = prompt | giga
 
 
 async def evaluate_hallucinations(session_id, context, answer, question):
-    result = await llm_chain.ainvoke({"context": context, "answer": answer, "question": question})
+    context_text = context.get("text")
+    result = await llm_chain.ainvoke({"context": context_text, "answer": answer, "question": question})
     print(f'**tokens used for validation: {result}')
+    response_text_new = result.content
+    if len(response_text_new) > 13:
+        print("The BLACKLIST problem while validating. Regeneration with the short_description.")
+        context_text = context.get("short_description")
+        result =  await llm_chain.ainvoke({"context": context_text, "answer": answer, "question": question})
+        print(f'**Validation result is generated with short_description') 
+        print(f'**tokens used for validation: {result}') 
     result = result.content if hasattr(result, 'content') else str(result)
-    await save_to_database(session_id, context, question, answer, result)
+    await save_to_database(session_id, context_text, question, answer, result)
     return result
