@@ -122,9 +122,19 @@ prompt = PromptTemplate(
 llm_chain = prompt | giga
 
 async def evaluate_hallucinations_artworkinfo(session_id, context, answer):
-    result = await llm_chain.ainvoke({"context": context, "description": answer})
-    question = "Опиши картину"
+    context_text = context.get("text")
+    result = await llm_chain.ainvoke({"context": context_text, "description": answer})
+    
     print(f'**tokens used for validation: {result}')
+    finish_reason = result.response_metadata.get("finish_reason")
+    
+    if finish_reason == "blacklist":
+        print(f"Finish reason for artwork_info validation: {finish_reason}. Regeneration with the short_description.")
+        context_text = context.get("short_description")
+        result = await llm_chain.ainvoke({"context": context_text, "description": answer})
+        print(f'**tokens used for validation: {result}')
+
+    question = "Опиши картину"
     result = result.content if hasattr(result, 'content') else str(result)
     await save_to_database(session_id, context, question, answer, result)
     return result
