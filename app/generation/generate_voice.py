@@ -1,4 +1,6 @@
 import asyncio
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+from aiohttp import ClientError
 from typing import Tuple, Optional
 from io import BytesIO
 from gtts import gTTS
@@ -105,7 +107,11 @@ def generate_audio_blocking(accented_text: str, bytes_file: BytesIO) -> Buffered
     audio.write_to_fp(bytes_file)
     bytes_file.seek(0)
 
-
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_fixed(2),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError, ClientError))
+)
 async def converter_text_to_voice(text: str) -> BufferedInputFile:
     start_time_audio = time.time()
     bytes_file = BytesIO()
@@ -113,7 +119,6 @@ async def converter_text_to_voice(text: str) -> BufferedInputFile:
     logging.info(f'Текст с ударениями: {accented_text[:100]}') 
 
     try: 
-        # Use asyncio.to_thread to run the blocking function
         logging.info('HTTP Request: POST https://translate.google.com/_/TranslateWebserverUi/data/batchexecute')
         await asyncio.to_thread(generate_audio_blocking, accented_text, bytes_file)
         logging.info(f"Audio generated")

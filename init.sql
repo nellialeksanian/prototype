@@ -1,7 +1,7 @@
 CREATE TABLE user_sessions (
     session_id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
-    username TEXT NOT NULL,
+    username TEXT,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
