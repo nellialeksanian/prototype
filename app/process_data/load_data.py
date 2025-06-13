@@ -1,7 +1,7 @@
 import pandas as pd
 from datasets import Dataset
 import re
-from aiogram.types import InputMediaPhoto, URLInputFile
+from aiogram.types import InputMediaPhoto, URLInputFile, FSInputFile
 
 
 def load_data():
@@ -50,7 +50,7 @@ async def send_text_with_image(text, image_url, message_func, photo_func, max_ca
         await send_text_in_chunks("\n\n".join(remaining_text), message_func) 
         
 
-async def send_images_then_text_group(name, text, image_urls, message_func, bot, chat_id):
+async def send_images_then_text_group_url(name, text, image_urls, message_func, bot, chat_id):
     
     for i in range(0, len(image_urls), 10):
         media_group = []
@@ -60,6 +60,24 @@ async def send_images_then_text_group(name, text, image_urls, message_func, bot,
                 media_group.append(InputMediaPhoto(media=file, caption=name))
             except Exception as e:
                 print(f"Failed to attach photo from {url}: {e}")
+
+        if media_group:
+            try:
+                await bot.send_media_group(chat_id=chat_id, media=media_group)
+            except Exception as e:
+                print(f"Failed to send media group: {e}")
+
+    await send_text_in_chunks(text, message_func)
+
+async def send_images_then_text_group(name, text, image_paths, message_func, bot, chat_id):
+    for i in range(0, len(image_paths), 10):
+        media_group = []
+        for path in image_paths[i:i + 10]:
+            try:
+                file = FSInputFile(path)
+                media_group.append(InputMediaPhoto(media=file, caption=name))
+            except Exception as e:
+                print(f"Failed to attach photo from {path}: {e}")
 
         if media_group:
             try:

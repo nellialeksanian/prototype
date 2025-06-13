@@ -227,7 +227,7 @@ async def process_artwork_info(query: CallbackQuery, state: FSMContext, data, ar
         artwork_caption = artwork_name + '\n\n Экспонат на карте: ' + artwork.get("id")
 
         if send_images and image_urls:
-            image_urls = [url.strip() for url in image_urls.split() if url.strip()]
+            image_urls = [url.strip() for url in image_urls.split(';') if url.strip()]
             logging.info(f"Image URLs to send: {image_urls}")
 
             await send_images_then_text_group(
