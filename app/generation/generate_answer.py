@@ -9,14 +9,14 @@ from settings.retry_helpers import invoke_llm_chain
 giga = GigaChat (
     credentials=gigachat_token,
     model='GigaChat',
-    # scope="GIGACHAT_API_CORP",
+    scope="GIGACHAT_API_B2B",
     verify_ssl_certs=False
 )
 
 giga_max = GigaChat (
     credentials=gigachat_token,
     model="GigaChat-Max", 
-    # scope="GIGACHAT_API_CORP",
+    scope="GIGACHAT_API_B2B",
     verify_ssl_certs=False
 )  
 

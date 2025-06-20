@@ -8,7 +8,7 @@ gigachat_token = settings.settings.GIGACHAT_TOKEN
 giga = GigaChat (
     credentials=gigachat_token,
     model="GigaChat-Max", 
-    # scope="GIGACHAT_API_CORP",
+    scope="GIGACHAT_API_B2B",
     verify_ssl_certs=False
 ) 
 

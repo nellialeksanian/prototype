@@ -76,4 +76,4 @@ async def save_to_database(session_id, context, question, answer, result):
             """, session_id, context, question, answer, result)
         print("Data saved successfully!")
     except Exception as e:
-        print(f"Error saving to database: {e}")
+        print(f"Error saving to hallucination_evaluations: {e}")

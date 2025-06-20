@@ -10,7 +10,7 @@ gigachat_token = settings.settings.GIGACHAT_TOKEN
 giga = GigaChat (
     credentials=gigachat_token,
     model="GigaChat-Max", 
-    # scope="GIGACHAT_API_CORP",
+    scope="GIGACHAT_API_B2B",
     verify_ssl_certs=False
 )  
 
@@ -136,5 +136,5 @@ async def evaluate_hallucinations_artworkinfo(session_id, context, answer):
 
     question = "Опиши картину"
     result = result.content if hasattr(result, 'content') else str(result)
-    await save_to_database(session_id, context, question, answer, result)
+    await save_to_database(session_id, context_text, question, answer, result)
     return result

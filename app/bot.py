@@ -1,8 +1,9 @@
 import uuid
 import asyncio
 from aiogram import Bot, Dispatcher, F, types
+from aiogram.filters import Command, or_f
 from aiogram.exceptions import TelegramNetworkError
-from aiogram.types import (ReplyKeyboardMarkup, Message, CallbackQuery, FSInputFile)
+from aiogram.types import (ReplyKeyboardMarkup, Message, CallbackQuery, FSInputFile, KeyboardButton)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
@@ -48,37 +49,49 @@ def create_keyboard(buttons):
         keyboard.button(text=text, callback_data=data)
     return keyboard.as_markup()
 
-@dp.message(F.text == "/start")
-@dp.message(F.text == "Старт")
-async def start(message: Message, state: FSMContext):
+permanent_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="Начать заново")],
+        [KeyboardButton(text="Завершить экскурсию")]
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=False,
+)
+@dp.message(or_f(
+    F.text == "/start",
+    F.text.lower() == "начать заново"
+))
+async def start(message: types.Message, state: FSMContext):
     user_id = str(message.from_user.id)
     username = message.from_user.username
     session_id = str(uuid.uuid4())
+
     await save_session_info_to_database(session_id, user_id, username)
     await state.set_state(TourState.awaiting_description)
-    await state.update_data(state='route_mode', current_artwork_index=0,
-        session_id=session_id, user_id=user_id)
-    data = await state.get_data()
-    keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [types.KeyboardButton(text="Старт")],
-        [types.KeyboardButton(text="Завершить экскурсию")]
-    ],
-    resize_keyboard=True,
-    # one_time_keyboard=True
+    await state.update_data(
+        state='route_mode',
+        current_artwork_index=0,
+        session_id=session_id,
+        user_id=user_id
     )
+
     await message.answer(
-        "Привет! 👋 Я — твой персональный гид по выставке «Культурный слой»  .\n"
-        "\n"
-        "Я создан на базе модели GigaChat — это значит, что я умею подстраиваться под твои интересы и вести настоящую живую беседу 🤖✨\n"
-        "\n"
-        "Давай немного познакомимся:\n"
+        "Если в любой момент захочешь выйти или начать заново — нажми кнопку внизу 👇",
+        reply_markup=permanent_keyboard
+    )
+
+    await message.answer(
+        "Давай познакомимся:\n"
         "🧠 Сколько тебе лет?\n"
         "🎨 Чем ты увлекаешься?\n"
-        "💡 Что привело тебя сюда: учеба, вдохновение или просто любопытство?\n"
-        "\n"
-        "Напиши в ответ немного о себе — это поможет мне составить маршрут, который подойдёт именно тебе 😊", 
-        reply_markup=keyboard
+        "💡 Что привело тебя сюда: учеба, вдохновение или просто любопытство?\n\n"
+        "*Напиши* в ответ немного о себе — это поможет мне составить маршрут, который подойдёт именно тебе 😊",
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+    await message.answer(
+        "Если в любой момент захочешь выйти или начать заново — нажми кнопку внизу 👇",
+        reply_markup=permanent_keyboard
     )
 
 @dp.message(TourState.awaiting_description)
