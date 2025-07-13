@@ -1,7 +1,8 @@
 import uuid
 import asyncio
+import os
 from aiogram import Bot, Dispatcher, F, types
-from aiogram.filters import Command, or_f
+from aiogram.filters import or_f
 from aiogram.exceptions import TelegramNetworkError
 from aiogram.types import (ReplyKeyboardMarkup, Message, CallbackQuery, FSInputFile, KeyboardButton)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -167,6 +168,8 @@ async def generate_route_response(message: Message, state: FSMContext):
             message_id=sent.message_id,
             disable_notification=True
         )
+            if os.path.exists(output_image_path):
+                os.remove(output_image_path)
         except Exception as e:
             logging.error(f"Error with sending photo: {e}")
 
